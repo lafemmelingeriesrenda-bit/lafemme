@@ -1,0 +1,99 @@
+<template>
+  <article id="product-card" class="flex flex-col overflow-hidden rounded-luxe border border-wine-100 bg-white shadow-soft transition hover:shadow-luxe">
+    <div class="flex h-56 items-center justify-center overflow-hidden bg-wine-50">
+      <img
+        v-if="src"
+        id="product-card-image"
+        :src="src"
+        :alt="name"
+        loading="lazy"
+        decoding="async"
+        class="h-full w-full object-cover"
+      />
+      <span v-else id="product-card-placeholder" class="font-sans text-sm text-wine-300">
+        Imagem
+      </span>
+    </div>
+
+    <div class="flex flex-1 flex-col gap-1 p-4">
+      <h2 id="product-card-name" class="font-display text-lg font-medium text-brand">
+        {{ name }}
+      </h2>
+
+      <p v-if="selected" id="product-card-price" class="mt-2 font-sans text-base font-semibold text-brand">
+        {{ formatPrice(selected.valor) }}
+      </p>
+
+      <div v-if="variantes.length > 0" id="product-card-sizes" class="mt-3 flex items-center gap-2">
+        <span class="font-sans text-sm font-medium text-wine-700">Tamanhos:</span>
+        <button
+          v-for="variante in variantes"
+          :key="variante.id"
+          type="button"
+          class="flex h-8 w-8 items-center justify-center rounded-full border font-sans text-sm font-medium transition"
+          :class="
+            selected?.id === variante.id
+              ? 'border-brand bg-brand text-cream'
+              : 'border-wine-200 text-wine-700 hover:border-brand hover:text-brand'
+          "
+          @click="select(variante)"
+        >
+          {{ variante.tamanho }}
+        </button>
+      </div>
+
+      <BaseButton
+        id="product-card-add-to-cart"
+        label="Adicionar ao carrinho"
+        variant="primary"
+        size="sm"
+        class="mt-4 w-full"
+        :disabled="!selected"
+        @click="handleAddToCart"
+      />
+    </div>
+  </article>
+</template>
+
+<script setup lang="ts">
+import BaseButton from '~/components/BaseButton.vue'
+
+interface Variante {
+  id: number
+  tamanho: string
+  valor: number
+  quantidade: number
+}
+
+interface Props {
+  src?: string
+  name: string
+  variantes: Variante[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  src: ''
+})
+
+const emit = defineEmits<{
+  'add-to-cart': [varianteId: number]
+}>()
+
+const selected = ref<Variante | null>(props.variantes[0] ?? null)
+
+function select(variante: Variante) {
+  selected.value = variante
+}
+
+function handleAddToCart() {
+  if (selected.value) {
+    emit('add-to-cart', selected.value.id)
+  }
+}
+
+function formatPrice(valor: number): string {
+  return `R$ ${valor.toFixed(2).replace('.', ',')}`
+}
+
+defineOptions({ name: 'ProductCard' })
+</script>
