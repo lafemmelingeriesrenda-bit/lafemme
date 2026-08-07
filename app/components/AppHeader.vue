@@ -16,6 +16,14 @@
       </h1>
 
       <div id="app-header-actions" class="flex items-center gap-3 justify-self-end">
+        <button
+          id="app-header-cart"
+          type="button"
+          class="rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50"
+          :title="'Carrinho'"
+        >
+          <ShoppingBagIcon class="h-6 w-6" />
+        </button>
         <BaseButton
           id="app-header-login"
           label="Entrar"
@@ -36,6 +44,7 @@
 </template>
 
 <script setup lang="ts">
+import { ShoppingBagIcon } from '@heroicons/vue/24/outline'
 import { toast } from 'vue-sonner'
 import BaseButton from '~/components/BaseButton.vue'
 import { useAuth } from '~/composables/useAuth'

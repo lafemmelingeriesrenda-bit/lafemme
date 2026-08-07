@@ -44,7 +44,7 @@
 
       <BaseButton
         id="product-card-add-to-cart"
-        label="Adicionar ao carrinho"
+        label="Adicionar à sacola"
         variant="primary"
         size="sm"
         class="mt-4 w-full"
