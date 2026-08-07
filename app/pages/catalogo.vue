@@ -13,22 +13,40 @@
         <ProductCard
           v-for="produto in produtos"
           :key="produto.produtoId"
+          :produto="produto"
           :src="produto.foto ?? ''"
           :name="produto.nome"
           :variantes="produto.variantes"
           @add-to-cart="handleAddToCart"
+          @abrir-produto="handleAbrirProduto"
         />
       </div>
     </section>
+
+    <VisualizarProduto
+      :aberto="visualizarAberto"
+      :produto="produtoVisualizado"
+      @fechar="visualizarAberto = false"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
 import ProductCard from '~/components/ProductCard.vue'
+import VisualizarProduto from '~/components/VisualizarProduto.vue'
 import { useProdutos } from '~/composables/useProdutos'
+import type { ProdutoCard } from '~/composables/useProdutos'
+
+const visualizarAberto = ref(false)
+const produtoVisualizado = ref<ProdutoCard | null>(null)
 
 const { produtos, loading, error } = useProdutos()
+
+function handleAbrirProduto(produto: ProdutoCard) {
+  produtoVisualizado.value = produto
+  visualizarAberto.value = true
+}
 
 function handleAddToCart(varianteId: number) {
   toast.success(`Variante ${varianteId} adicionada ao carrinho!`)

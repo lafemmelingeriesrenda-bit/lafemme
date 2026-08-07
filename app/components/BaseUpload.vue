@@ -6,20 +6,20 @@
 
     <div v-if="modelValue.length > 0" class="grid grid-cols-3 gap-2">
       <div
-        v-for="(file, index) in modelValue"
-        :key="`${file.name}-${index}`"
+        v-for="item in modelValue"
+        :key="item.id"
         class="group relative aspect-square overflow-hidden rounded-luxe border border-wine-100 bg-wine-50"
       >
         <img
-          :src="previewUrl(file)"
-          :alt="file.name"
+          :src="previewUrl(item)"
+          :alt="`Imagem do produto`"
           class="h-full w-full object-cover"
         />
         <button
           type="button"
           class="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black"
-          :aria-label="`Remover ${file.name}`"
-          @click="remover(index)"
+          :aria-label="`Remover imagem`"
+          @click="remover(item.id)"
         >
           <XMarkIcon class="h-4 w-4" />
         </button>
@@ -49,9 +49,10 @@
 
 <script setup lang="ts">
 import { PlusIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import type { ItemImagem } from '~/composables/useSalvarProduto'
 
 interface Props {
-  modelValue?: File[]
+  modelValue?: ItemImagem[]
   label?: string
   multiple?: boolean
   max?: number
@@ -65,7 +66,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [files: File[]]
+  'update:modelValue': [items: ItemImagem[]]
 }>()
 
 const picker = ref<HTMLInputElement | null>(null)
@@ -75,14 +76,24 @@ const aceitaMais = computed(() =>
   props.multiple ? props.modelValue.length < props.max : props.modelValue.length === 0
 )
 
-function previewUrl(file: File): string {
-  const cached = urls.get(file.name)
+function previewUrl(item: ItemImagem): string {
+  if (item.url) {
+    return item.url
+  }
+  if (!item.file) {
+    return ''
+  }
+  const cached = urls.get(item.id)
   if (cached) {
     return cached
   }
-  const url = URL.createObjectURL(file)
-  urls.set(file.name, url)
+  const url = URL.createObjectURL(item.file)
+  urls.set(item.id, url)
   return url
+}
+
+function novaItem(file: File): ItemImagem {
+  return { id: crypto.randomUUID(), file }
 }
 
 function handleChange(event: Event) {
@@ -91,24 +102,27 @@ function handleChange(event: Event) {
 
   if (props.multiple) {
     const rest = props.max - props.modelValue.length
-    emit('update:modelValue', [...props.modelValue, ...files].slice(0, props.max))
+    const novos = files.slice(0, rest).map(novaItem)
+    emit('update:modelValue', [...props.modelValue, ...novos].slice(0, props.max))
   } else {
-    emit('update:modelValue', files.slice(0, 1))
+    emit('update:modelValue', files.slice(0, 1).map(novaItem))
   }
 
   input.value = ''
 }
 
-function remover(index: number) {
+function remover(id: string) {
   const next = [...props.modelValue]
-  const [removed] = next.splice(index, 1)
-  if (removed) {
-    const url = urls.get(removed.name)
-    if (url) {
-      URL.revokeObjectURL(url)
-      urls.delete(removed.name)
-    }
+  const index = next.findIndex((item) => item.id === id)
+  if (index === -1) {
+    return
   }
+  const url = urls.get(id)
+  if (url) {
+    URL.revokeObjectURL(url)
+    urls.delete(id)
+  }
+  next.splice(index, 1)
   emit('update:modelValue', next)
 }
 

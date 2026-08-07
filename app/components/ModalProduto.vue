@@ -151,7 +151,7 @@
       />
       <BaseButton
         id="modal-produto-proximo"
-        label="Próximo"
+        :label="passo === 2 ? (isEdicao ? 'Atualizar Produto' : 'Adicionar Produto') : 'Próximo'"
         variant="primary"
         size="md"
         @click="handleProximoOuSalvar"
@@ -167,6 +167,7 @@ import BaseButton from '~/components/BaseButton.vue'
 import BaseInput from '~/components/BaseInput.vue'
 import BaseModal from '~/components/BaseModal.vue'
 import BaseUpload from '~/components/BaseUpload.vue'
+import type { ItemImagem } from '~/composables/useSalvarProduto'
 
 export interface VarianteForm {
   id: number
@@ -174,7 +175,7 @@ export interface VarianteForm {
   valor: string
   quantidade: string
   tamanho: string
-  imagens: File[]
+  imagens: ItemImagem[]
 }
 
 export interface VarianteFormPayload {
@@ -183,7 +184,7 @@ export interface VarianteFormPayload {
   valor: number
   quantidade: number
   tamanho: string
-  imagens: File[]
+  imagens: ItemImagem[]
 }
 
 export interface ProdutoFormPayload {
@@ -191,8 +192,16 @@ export interface ProdutoFormPayload {
   nome: string
   descricao: string
   categoria: string
-  capa: File[]
+  capa: ItemImagem[]
   variantes: VarianteFormPayload[]
+}
+
+export interface ProdutoVarianteInicial {
+  cor: string | null
+  tamanho: string | null
+  valor: number | null
+  quantidade: number | null
+  imagens: { url: string }[]
 }
 
 interface Props {
@@ -203,6 +212,8 @@ interface Props {
     nome: string
     descricao: string | null
     categoria: string | null
+    capa?: { url: string } | null
+    variantes?: ProdutoVarianteInicial[]
   } | null
 }
 
@@ -225,7 +236,7 @@ const form = reactive<{
   nome: string
   descricao: string
   categoria: string
-  capa: File[]
+  capa: ItemImagem[]
   variantes: VarianteForm[]
 }>({
   nome: '',
@@ -244,6 +255,10 @@ function criarVariante(): VarianteForm {
     tamanho: '',
     imagens: []
   }
+}
+
+function itemImagemUrl(url: string): ItemImagem {
+  return { id: crypto.randomUUID(), url }
 }
 
 function adicionarVariante() {
@@ -265,9 +280,24 @@ watch(
     form.nome = props.produtoInicial?.nome ?? ''
     form.descricao = props.produtoInicial?.descricao ?? ''
     form.categoria = props.produtoInicial?.categoria ?? ''
-    form.capa = []
+    form.capa = props.produtoInicial?.capa?.url
+      ? [itemImagemUrl(props.produtoInicial.capa.url)]
+      : []
 
-    form.variantes = [criarVariante()]
+    const iniciais = props.produtoInicial?.variantes ?? []
+    if (iniciais.length > 0) {
+      form.variantes = iniciais.map((v) => {
+        const variante = criarVariante()
+        variante.cor = v.cor ?? ''
+        variante.tamanho = v.tamanho ?? ''
+        variante.valor = v.valor === null ? '0' : String(v.valor)
+        variante.quantidade = v.quantidade === null ? '0' : String(v.quantidade)
+        variante.imagens = v.imagens.map((img) => itemImagemUrl(img.url))
+        return variante
+      })
+    } else {
+      form.variantes = [criarVariante()]
+    }
   }
 )
 

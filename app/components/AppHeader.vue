@@ -25,6 +25,13 @@
           <ShoppingBagIcon class="h-6 w-6" />
         </button>
         <BaseButton
+          id="app-header-cadastrar"
+          label="Cadastrar"
+          variant="outline"
+          size="md"
+          @click="emit('abrir-cadastro')"
+        />
+        <BaseButton
           id="app-header-login"
           label="Entrar"
           variant="primary"
@@ -48,6 +55,10 @@ import { ShoppingBagIcon } from '@heroicons/vue/24/outline'
 import { toast } from 'vue-sonner'
 import BaseButton from '~/components/BaseButton.vue'
 import { useAuth } from '~/composables/useAuth'
+
+const emit = defineEmits<{
+  'abrir-cadastro': []
+}>()
 
 defineOptions({ name: 'AppHeader' })
 

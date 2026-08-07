@@ -71,6 +71,7 @@ import {
   ChevronRightIcon,
   CubeIcon,
   ShoppingBagIcon,
+  ShoppingCartIcon,
   UsersIcon
 } from '@heroicons/vue/24/outline'
 import { useAuth } from '~/composables/useAuth'
@@ -104,6 +105,7 @@ function isActive(item: NavItem): boolean {
 const items: NavItem[] = [
   { id: 'app-sidebar-catalogo', label: 'Catálogo', icon: ShoppingBagIcon, to: '/catalogo' },
   { id: 'app-sidebar-produtos', label: 'Produtos', icon: CubeIcon, to: '/produtos' },
+  { id: 'app-sidebar-compras', label: 'Compras', icon: ShoppingCartIcon, to: '/compras' },
   { id: 'app-sidebar-clientes', label: 'Clientes', icon: UsersIcon, to: '/clientes' },
   { id: 'app-sidebar-relatorios', label: 'Relatórios', icon: ChartBarIcon, to: '/relatorios' }
 ]

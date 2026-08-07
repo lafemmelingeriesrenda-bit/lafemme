@@ -42,7 +42,6 @@
       <table id="produtos-table" class="w-full text-left font-sans text-sm">
         <thead class="border-b border-wine-100 bg-wine-50 text-xs uppercase tracking-wider text-wine-600">
           <tr>
-            <th id="produtos-th-id" class="px-6 py-3 font-semibold">ID</th>
             <th id="produtos-th-imagem" class="px-6 py-3 font-semibold">Imagem</th>
             <th id="produtos-th-nome" class="px-6 py-3 font-semibold">Nome</th>
             <th id="produtos-th-categoria" class="px-6 py-3 font-semibold">Categoria</th>
@@ -55,7 +54,6 @@
             :key="produto.id"
             class="border-b border-wine-100 last:border-0"
           >
-            <td class="px-6 py-3 text-wine-700">{{ produto.id }}</td>
             <td class="px-6 py-3">
               <img
                 v-if="produto.foto"
@@ -186,22 +184,65 @@ function handleAdicionar() {
   modalAberto.value = true
 }
 
-function handleEditar(produto: ProdutoRow) {
+async function handleEditar(produto: ProdutoRow) {
   modalEdicao.value = true
   modalId.value = produto.id
+
+  const { data: variantes, error: erroVariantes } = await supabase
+    .from('produto_variante')
+    .select('id, cor, tamanho, valor, quantidade, foto')
+    .eq('produto_id', produto.id)
+
+  if (erroVariantes) {
+    toast.error(erroVariantes.message)
+    return
+  }
+
+  const idsVariantes = (variantes ?? []).map((v) => v.id as number)
+
+  const { data: fotos, error: erroFotos } = idsVariantes.length
+    ? await supabase
+        .from('foto_variante')
+        .select('url, id_variante')
+        .in('id_variante', idsVariantes)
+    : { data: [], error: null }
+
+  if (erroFotos) {
+    toast.error(erroFotos.message)
+    return
+  }
+
+  const fotosPorVariante = new Map<number, string[]>()
+  for (const foto of fotos ?? []) {
+    const lista = fotosPorVariante.get(foto.id_variante) ?? []
+    lista.push(foto.url)
+    fotosPorVariante.set(foto.id_variante, lista)
+  }
+
   modalInicial.value = {
     nome: produto.nome,
     descricao: produto.descricao,
-    categoria: produto.categoria
+    categoria: produto.categoria,
+    capa: (variantes ?? []).find((v) => v.foto)?.foto
+      ? { url: (variantes ?? []).find((v) => v.foto)?.foto as string }
+      : null,
+    variantes: (variantes ?? []).map((v) => ({
+      cor: v.cor,
+      tamanho: v.tamanho,
+      valor: v.valor as number | null,
+      quantidade: v.quantidade as number | null,
+      imagens: (fotosPorVariante.get(v.id as number) ?? []).map((url) => ({ url }))
+    }))
   }
+
   modalAberto.value = true
 }
 
 async function handleSalvo(payload: ProdutoFormPayload) {
   try {
-    const { salvar } = useSalvarProduto()
+    const { salvar, atualizar } = useSalvarProduto()
 
-    await salvar({
+    const dados = {
       nome: payload.nome,
       descricao: payload.descricao,
       categoria: payload.categoria,
@@ -214,9 +255,16 @@ async function handleSalvo(payload: ProdutoFormPayload) {
         sku: null,
         imagens: v.imagens
       }))
-    })
+    }
 
-    toast.success('Produto criado com sucesso.')
+    if (payload.id) {
+      await atualizar({ id: payload.id, ...dados })
+      toast.success('Produto atualizado com sucesso.')
+    } else {
+      await salvar(dados)
+      toast.success('Produto criado com sucesso.')
+    }
+
     modalAberto.value = false
     await refresh()
   } catch (err) {

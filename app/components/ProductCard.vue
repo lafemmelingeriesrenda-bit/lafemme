@@ -1,6 +1,8 @@
 <template>
   <article id="product-card" class="flex flex-col overflow-hidden rounded-luxe border border-wine-100 bg-white shadow-soft transition hover:shadow-luxe">
-    <div class="flex h-56 items-center justify-center overflow-hidden bg-wine-50">
+    <div
+      class="flex h-56 items-center justify-center overflow-hidden bg-wine-50"
+    >
       <img
         v-if="src"
         id="product-card-image"
@@ -8,11 +10,18 @@
         :alt="name"
         loading="lazy"
         decoding="async"
-        class="h-full w-full object-cover"
+        class="h-full w-full cursor-pointer object-cover"
+        @click="emit('abrir-produto', produto)"
       />
-      <span v-else id="product-card-placeholder" class="font-sans text-sm text-wine-300">
+      <button
+        v-else
+        id="product-card-placeholder"
+        type="button"
+        class="flex h-full w-full flex-col items-center justify-center font-sans text-sm text-wine-300 transition hover:bg-wine-100"
+        @click="emit('abrir-produto', produto)"
+      >
         Imagem
-      </span>
+      </button>
     </div>
 
     <div class="flex flex-1 flex-col gap-1 p-4">
@@ -57,6 +66,7 @@
 
 <script setup lang="ts">
 import BaseButton from '~/components/BaseButton.vue'
+import type { ProdutoCard } from '~/composables/useProdutos'
 
 interface Variante {
   id: number
@@ -66,6 +76,7 @@ interface Variante {
 }
 
 interface Props {
+  produto: ProdutoCard
   src?: string
   name: string
   variantes: Variante[]
@@ -77,6 +88,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'add-to-cart': [varianteId: number]
+  'abrir-produto': [produto: ProdutoCard]
 }>()
 
 const selected = ref<Variante | null>(props.variantes[0] ?? null)
