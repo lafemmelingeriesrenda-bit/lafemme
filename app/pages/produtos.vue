@@ -6,19 +6,6 @@
     >
       <h1 class="shrink-0 font-display text-3xl font-semibold text-brand">Produtos</h1>
 
-      <div id="produtos-search" class="relative w-full max-w-md">
-        <MagnifyingGlassIcon
-          class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-wine-400"
-        />
-        <input
-          id="produtos-search-input"
-          type="search"
-          v-model="busca"
-          placeholder="Buscar produto..."
-          class="w-full rounded-luxe border border-wine-200 bg-white py-2.5 pl-10 pr-4 font-sans text-sm text-ink outline-none transition placeholder:font-light placeholder:text-wine-300 focus:border-brand focus:ring-2 focus:ring-wine-200"
-        />
-      </div>
-
       <button
         id="produtos-add"
         type="button"
@@ -29,6 +16,19 @@
         Adicionar produto
       </button>
     </header>
+
+    <div id="produtos-search" class="relative mt-6 max-w-md">
+      <MagnifyingGlassIcon
+        class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-wine-400"
+      />
+      <input
+        id="produtos-search-input"
+        type="search"
+        v-model="busca"
+        placeholder="Buscar produto..."
+        class="w-full rounded-luxe border border-wine-200 bg-white py-2.5 pl-10 pr-4 font-sans text-sm text-ink outline-none transition placeholder:font-light placeholder:text-wine-300 focus:border-brand focus:ring-2 focus:ring-wine-200"
+      />
+    </div>
 
     <p v-if="loading" class="mt-6 font-sans text-lg text-wine-700">
       Carregando produtos...
@@ -42,6 +42,7 @@
       <table id="produtos-table" class="w-full text-left font-sans text-sm">
         <thead class="border-b border-wine-100 bg-wine-50 text-xs uppercase tracking-wider text-wine-600">
           <tr>
+            <th class="w-12 px-4 py-3 font-semibold" aria-label="Expandir"></th>
             <th id="produtos-th-imagem" class="px-6 py-3 font-semibold">Imagem</th>
             <th id="produtos-th-nome" class="px-6 py-3 font-semibold">Nome</th>
             <th id="produtos-th-categoria" class="px-6 py-3 font-semibold">Categoria</th>
@@ -49,11 +50,22 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="produto in filtrados"
-            :key="produto.id"
-            class="border-b border-wine-100 last:border-0"
-          >
+          <template v-for="produto in filtrados" :key="produto.id">
+            <tr class="border-b border-wine-100 last:border-0">
+            <td class="px-4 py-3">
+              <button
+                :id="`produtos-expandir-${produto.id}`"
+                type="button"
+                class="rounded-luxe p-1.5 text-wine-700 transition hover:bg-wine-50"
+                :title="expandidos.has(produto.id) ? 'Recolher' : 'Expandir'"
+                @click="toggleExpandir(produto.id)"
+              >
+                <component
+                  :is="expandidos.has(produto.id) ? ChevronDownIcon : ChevronRightIcon"
+                  class="h-5 w-5"
+                />
+              </button>
+            </td>
             <td class="px-6 py-3">
               <img
                 v-if="produto.foto"
@@ -92,6 +104,33 @@
               </div>
             </td>
           </tr>
+          <tr
+            v-if="expandidos.has(produto.id)"
+            class="border-b border-wine-100 last:border-0"
+          >
+            <td :colspan="5" class="bg-wine-50/50 px-6 py-4">
+              <div v-if="produto.variantes.length > 0" class="flex flex-wrap gap-3">
+                <div
+                  v-for="variante in produto.variantes"
+                  :key="variante.id"
+                  class="flex flex-col gap-1 rounded-luxe border border-wine-100 bg-white px-4 py-3"
+                >
+                  <div class="flex items-center gap-3">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full border border-wine-200 font-sans text-sm font-medium text-brand">
+                      {{ variante.tamanho }}
+                    </span>
+                  </div>
+                  <span class="font-sans text-xs text-wine-600">
+                    {{ variante.cor ?? 'Sem cor' }} · Qtd: {{ variante.quantidade }}
+                  </span>
+                </div>
+              </div>
+              <p v-else class="font-sans text-sm text-wine-500">
+                Nenhuma variação cadastrada.
+              </p>
+            </td>
+          </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -109,6 +148,8 @@
 
 <script setup lang="ts">
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   MagnifyingGlassIcon,
   PencilSquareIcon,
   PlusIcon,
@@ -123,15 +164,25 @@ import { useSalvarProduto } from '~/composables/useSalvarProduto'
 
 definePageMeta({ layout: 'layout-principal' })
 
+interface VarianteDetalhe {
+  id: number
+  cor: string | null
+  tamanho: string
+  valor: number
+  quantidade: number
+}
+
 interface ProdutoRow {
   id: number
   nome: string
   descricao: string | null
   categoria: string | null
   foto: string | null
+  variantes: VarianteDetalhe[]
 }
 
 const busca = ref('')
+const expandidos = ref<Set<number>>(new Set())
 const modalAberto = ref(false)
 const modalEdicao = ref(false)
 const modalId = ref<number | null>(null)
@@ -140,7 +191,11 @@ const modalInicial = ref<ProdutoRow | null>(null)
 const supabase = useSupabaseClient()
 
 const { data: produtos, pending, error: queryError, refresh } = useAsyncData('produtos_admin', async () => {
-  const [{ data, error }, { data: fotos, error: erroFotos }] = await Promise.all([
+  const [
+    { data, error },
+    { data: fotos, error: erroFotos },
+    { data: variantes, error: erroVariantes }
+  ] = await Promise.all([
     supabase
       .from('produtos')
       .select('id, nome, descricao, categoria')
@@ -149,7 +204,10 @@ const { data: produtos, pending, error: queryError, refresh } = useAsyncData('pr
       .from('produto_variante')
       .select('produto_id, foto')
       .not('foto', 'is', null)
-      .order('produto_id')
+      .order('produto_id'),
+    supabase
+      .from('produto_variante')
+      .select('id, produto_id, cor, tamanho, valor, quantidade')
   ])
 
   if (error) {
@@ -157,6 +215,9 @@ const { data: produtos, pending, error: queryError, refresh } = useAsyncData('pr
   }
   if (erroFotos) {
     throw new Error(erroFotos.message)
+  }
+  if (erroVariantes) {
+    throw new Error(erroVariantes.message)
   }
 
   const fotoPorProduto = new Map<number, string>()
@@ -166,9 +227,23 @@ const { data: produtos, pending, error: queryError, refresh } = useAsyncData('pr
     }
   }
 
-  return ((data ?? []) as Exclude<ProdutoRow, 'foto'>[]).map((p) => ({
+  const variantesPorProduto = new Map<number, VarianteDetalhe[]>()
+  for (const item of variantes ?? []) {
+    const lista = variantesPorProduto.get(item.produto_id) ?? []
+    lista.push({
+      id: item.id,
+      cor: item.cor,
+      tamanho: item.tamanho,
+      valor: item.valor,
+      quantidade: item.quantidade
+    })
+    variantesPorProduto.set(item.produto_id, lista)
+  }
+
+  return ((data ?? []) as Exclude<ProdutoRow, 'foto' | 'variantes'>[]).map((p) => ({
     ...p,
-    foto: fotoPorProduto.get(p.id) ?? null
+    foto: fotoPorProduto.get(p.id) ?? null,
+    variantes: variantesPorProduto.get(p.id) ?? []
   }))
 })
 
@@ -176,6 +251,16 @@ const loading = pending
 const error = computed(() => queryError.value?.message ?? null)
 
 const { filtrados } = useBuscaProdutos<ProdutoRow>(produtos, busca)
+
+function toggleExpandir(id: number) {
+  const proximo = new Set(expandidos.value)
+  if (proximo.has(id)) {
+    proximo.delete(id)
+  } else {
+    proximo.add(id)
+  }
+  expandidos.value = proximo
+}
 
 function handleAdicionar() {
   modalEdicao.value = false
