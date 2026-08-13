@@ -207,7 +207,7 @@ import {
   type ProdutoPublico,
   type VarianteProdutoPublico
 } from '~/composables/useProdutoPublico'
-import { slugificarProduto } from '~/utils/slugProduto'
+import { caminhoProdutoSeSlugDiferente, urlProduto } from '~/utils/slugProduto'
 
 defineOptions({ name: 'PaginaProduto' })
 
@@ -228,9 +228,7 @@ const quantidade = ref(1)
 
 const { adicionar } = useCarrinho()
 
-const slugCorreto = computed<string | null>(() =>
-  produto.value ? slugificarProduto(produto.value.nome) : null
-)
+const slugOficial = computed<string | null>(() => produto.value?.slug ?? null)
 
 const corAtiva = computed<CorProdutoPublico | null>(() => corSelecionada.value ?? produto.value?.cores[0] ?? null)
 
@@ -271,10 +269,10 @@ const precoExibido = computed<string>(() =>
 )
 
 const urlCanonica = computed<string | null>(() => {
-  if (!produto.value || !slugCorreto.value) {
+  if (!produto.value || !slugOficial.value) {
     return null
   }
-  return new URL(`/produto/${produto.value.id}-${slugCorreto.value}`, requestUrl).toString()
+  return new URL(urlProduto(produto.value.id, slugOficial.value), requestUrl).toString()
 })
 
 useHead(() => {
@@ -303,10 +301,17 @@ watchEffect(() => {
     import.meta.client &&
     !carregando.value &&
     produto.value &&
-    slugCorreto.value &&
-    slugDoParam !== slugCorreto.value
+    slugOficial.value
   ) {
-    navigateTo(`/produto/${produto.value.id}-${slugCorreto.value}`, { replace: true })
+    const destino = caminhoProdutoSeSlugDiferente({
+      id: produto.value.id,
+      slugOficial: slugOficial.value,
+      slugDaRota: slugDoParam
+    })
+
+    if (destino) {
+      navigateTo(destino, { replace: true })
+    }
   }
 })
 

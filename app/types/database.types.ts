@@ -292,6 +292,7 @@ export interface Database {
         Row: {
           produto_id: number
           nome: string
+          slug: string | null
           descricao: string | null
           categoria: string | null
           variante_id: number

@@ -6,7 +6,8 @@ export default defineNuxtConfig({
   css: ['vue-sonner/style.css'],
   runtimeConfig: {
     public: {
-      whatsappNumero: '5534996600338'
+      whatsappNumero: '5534996600338',
+      siteUrl: 'http://localhost:3000'
     }
   },
   supabase: {

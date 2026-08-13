@@ -1,4 +1,5 @@
 import { useSupabaseClient } from '#imports'
+import { slugBase, slugComSufixo } from '~/utils/slugProduto'
 
 export const BUCKET_LA_FEMME = 'La Femme'
 
@@ -145,6 +146,60 @@ export function useSalvarProduto() {
     return variantesSalvas
   }
 
+  async function buscarSlugsEmUso(excluir?: string | null): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('slug')
+      .not('slug', 'is', null)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return (data ?? [])
+      .map((registro) => registro.slug as string | null)
+      .filter((slug): slug is string => typeof slug === 'string' && slug.length > 0)
+      .filter((slug) => slug !== excluir)
+  }
+
+  async function gerarSlug(nome: string, produtoId: number, slugAtual: string | null): Promise<string> {
+    const base = slugBase(nome, produtoId)
+
+    for (let tentativa = 0; tentativa < 20; tentativa += 1) {
+      const emUso = await buscarSlugsEmUso(slugAtual)
+      const candidato = slugComSufixo(base, emUso)
+
+      const { error } = await supabase
+        .from('produtos')
+        .update({ slug: candidato })
+        .eq('id', produtoId)
+
+      if (!error) {
+        return candidato
+      }
+
+      const codigo = (error as { code?: string } | null)?.code
+      if (codigo !== '23505') {
+        throw new Error(error.message)
+      }
+    }
+
+    throw new Error('Não foi possível gerar um slug único para o produto.')
+  }
+
+  async function resolverSlug(
+    produtoId: number,
+    nome: string,
+    slugAtual: string | null,
+    nomeAtual: string | null
+  ): Promise<string> {
+    if (slugAtual && nomeAtual === nome) {
+      return slugAtual
+    }
+
+    return gerarSlug(nome, produtoId, slugAtual)
+  }
+
   async function salvar(payload: ProdutoNovo): Promise<ProdutoSalvo> {
     const { data: produto, error: erroProduto } = await supabase
       .from('produtos')
@@ -153,7 +208,7 @@ export function useSalvarProduto() {
         descricao: payload.descricao ?? null,
         categoria: payload.categoria ?? null
       })
-      .select('id')
+      .select('id, slug')
       .single()
 
     if (erroProduto) {
@@ -164,6 +219,8 @@ export function useSalvarProduto() {
     }
 
     const produtoId = produto.id as number
+
+    await resolverSlug(produtoId, payload.nome, produto.slug as string | null, null)
 
     const urlCapa = await resolverImagem(payload.capa)
     const variantes = await inserirVariantes(produtoId, payload.variantes, urlCapa)
@@ -176,6 +233,21 @@ export function useSalvarProduto() {
       throw new Error('Informe o identificador do produto para editá-lo.')
     }
 
+    const { data: atual, error: erroBusca } = await supabase
+      .from('produtos')
+      .select('id, nome, slug')
+      .eq('id', payload.id)
+      .single()
+
+    if (erroBusca) {
+      throw new Error(erroBusca.message)
+    }
+    if (!atual) {
+      throw new Error('Produto não encontrado para atualização.')
+    }
+
+    const produtoId = atual.id as number
+
     const { data: produto, error: erroProduto } = await supabase
       .from('produtos')
       .update({
@@ -183,7 +255,7 @@ export function useSalvarProduto() {
         descricao: payload.descricao ?? null,
         categoria: payload.categoria ?? null
       })
-      .eq('id', payload.id)
+      .eq('id', produtoId)
       .select('id')
       .single()
 
@@ -194,7 +266,7 @@ export function useSalvarProduto() {
       throw new Error('O produto não foi retornado após a atualização.')
     }
 
-    const produtoId = produto.id as number
+    await resolverSlug(produtoId, payload.nome, atual.slug as string | null, atual.nome as string | null)
 
     const { data: variantesAntigas } = await supabase
       .from('produto_variante')

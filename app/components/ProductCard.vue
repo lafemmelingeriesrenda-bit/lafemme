@@ -1,7 +1,7 @@
 <template>
   <article id="product-card" class="flex flex-col overflow-hidden rounded-luxe border border-wine-100 bg-white shadow-soft transition hover:shadow-luxe">
     <NuxtLink
-      :to="urlProduto(produto.produtoId, name)"
+      :to="destino"
       :aria-label="`Ver detalhes de ${name}`"
       class="flex h-56 items-center justify-center overflow-hidden bg-wine-50"
     >
@@ -62,7 +62,7 @@
 
       <NuxtLink
         id="product-card-ver-detalhes"
-        :to="urlProduto(produto.produtoId, name)"
+        :to="destino"
         class="mt-2 inline-flex items-center justify-center gap-1 font-sans text-sm font-medium text-brand transition hover:text-brand-dark hover:underline"
       >
         Ver detalhes
@@ -76,7 +76,7 @@
 import { ArrowRightIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '~/components/BaseButton.vue'
 import type { ProdutoCard } from '~/composables/useProdutos'
-import { urlProduto } from '~/utils/slugProduto'
+import { slugificarProduto, urlProduto } from '~/utils/slugProduto'
 
 interface Variante {
   id: number
@@ -101,6 +101,14 @@ const emit = defineEmits<{
 }>()
 
 const selected = ref<Variante | null>(props.variantes[0] ?? null)
+
+const destino = computed<string>(() => {
+  if (props.produto.slug) {
+    return urlProduto(props.produto.produtoId, props.produto.slug)
+  }
+
+  return urlProduto(props.produto.produtoId, slugificarProduto(props.name))
+})
 
 function select(variante: Variante) {
   selected.value = variante

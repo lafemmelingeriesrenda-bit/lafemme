@@ -6,6 +6,8 @@ export interface ItemPedidoCriado {
   cor: string | null
   tamanho: string
   sku: string | null
+  foto: string | null
+  produto_url: string | null
   quantidade: number
   valor_unitario: number
   subtotal: number

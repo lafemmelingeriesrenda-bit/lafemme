@@ -32,6 +32,8 @@ const pedidoCriado: PedidoCriado = {
       cor: null,
       tamanho: 'M',
       sku: null,
+      foto: null,
+      produto_url: 'https://lafemme-sepia.vercel.app/produto/1-vestido',
       quantidade: 1,
       valor_unitario: 120,
       subtotal: 120
@@ -59,6 +61,20 @@ describe('useCriarPedido', () => {
       expect.objectContaining({ method: 'POST', ignoreResponseError: true })
     )
     expect(pedido).toEqual(pedidoCriado)
+  })
+
+  it('retorna o pedido com produto_url por item', async () => {
+    const pedidoSemUrl: PedidoCriado = {
+      ...pedidoCriado,
+      itens: [{ ...pedidoCriado.itens[0], produto_url: null }]
+    }
+
+    rawMock.mockResolvedValue(respostaDe(201, { sucesso: true, pedido: pedidoSemUrl }))
+
+    const { criarPedido } = useCriarPedido()
+    const pedido = await criarPedido(payload)
+
+    expect(pedido?.itens[0].produto_url).toBeNull()
   })
 
   it('trata 400 como dados inválidos usando a mensagem do servidor', async () => {

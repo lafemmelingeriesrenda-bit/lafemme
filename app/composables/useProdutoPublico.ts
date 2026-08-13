@@ -17,6 +17,7 @@ export interface CorProdutoPublico {
 export interface ProdutoPublico {
   id: number
   nome: string
+  slug: string | null
   descricao: string | null
   categoria: string | null
   cores: CorProdutoPublico[]
@@ -29,7 +30,7 @@ export function useProdutoPublico(id: number) {
     const { data: linhas, error: queryError } = await supabase
       .from('catalogo_produtos')
       .select(
-        'produto_id, nome, descricao, categoria, cor, variante_id, tamanho, valor, foto, quantidade, disponivel'
+        'produto_id, nome, slug, descricao, categoria, cor, variante_id, tamanho, valor, foto, quantidade, disponivel'
       )
       .eq('produto_id', id)
       .order('cor')
@@ -52,6 +53,7 @@ export function useProdutoPublico(id: number) {
     const produto: ProdutoPublico = {
       id: primeiraLinha.produto_id,
       nome: primeiraLinha.nome,
+      slug: primeiraLinha.slug,
       descricao: primeiraLinha.descricao,
       categoria: primeiraLinha.categoria,
       cores: []

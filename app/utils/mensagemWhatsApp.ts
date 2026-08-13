@@ -21,6 +21,10 @@ function formatarTelefone(digitos: string): string {
 function montarLinhasItem(item: ItemPedidoCriado): string[] {
   const linhas: string[] = [item.nome_produto]
 
+  if (item.produto_url && item.produto_url.trim().length > 0) {
+    linhas.push(`   Produto: ${item.produto_url}`)
+  }
+
   if (item.cor && item.cor.length > 0) {
     linhas.push(`   Cor: ${item.cor}`)
   }

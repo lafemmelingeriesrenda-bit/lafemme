@@ -10,6 +10,7 @@ export interface VarianteProduto {
 export interface ProdutoCard {
   produtoId: number
   nome: string
+  slug: string | null
   descricao: string | null
   categoria: string | null
   cor: string | null
@@ -24,7 +25,7 @@ export function useProdutos() {
     const { data, error: queryError } = await supabase
       .from('catalogo_produtos')
       .select(
-        'produto_id, nome, descricao, categoria, cor, variante_id, tamanho, valor, foto, quantidade'
+        'produto_id, nome, slug, descricao, categoria, cor, variante_id, tamanho, valor, foto, quantidade'
       )
       .order('nome')
 
@@ -42,6 +43,7 @@ export function useProdutos() {
         grupo = {
           produtoId: item.produto_id,
           nome: item.nome,
+          slug: item.slug,
           descricao: item.descricao,
           categoria: item.categoria,
           cor: item.cor,

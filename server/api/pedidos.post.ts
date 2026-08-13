@@ -2,6 +2,7 @@ import { serverSupabaseClient, serverSupabaseServiceRole } from '#supabase/serve
 import type { Json } from '~/types/database.types'
 import type { ItemPedidoCriado, RespostaRpcCriarPedido } from '~/types/pedido'
 import type { VarianteValidacao } from '~/types/validacao-carrinho'
+import { urlProdutoAbsoluta } from '~/utils/slugProduto'
 
 interface LinhaPedido {
   id: number
@@ -20,6 +21,7 @@ interface LinhaItemPedido {
   cor: string | null
   tamanho: string
   sku: string | null
+  foto: string | null
   quantidade: number
   valor_unitario: number
   subtotal: number
@@ -204,6 +206,8 @@ export default defineEventHandler(async (event) => {
 
   let linhaPedido: LinhaPedido
   let linhaItens: LinhaItemPedido[]
+  const mapaProdutoId = new Map<number, number>()
+  const mapaSlug = new Map<number, string | null>()
 
   try {
     const admin = await serverSupabaseServiceRole(event)
@@ -216,7 +220,7 @@ export default defineEventHandler(async (event) => {
         .single(),
       admin
         .from('itens_pedido')
-        .select('produto_variante_id, nome_produto, cor, tamanho, sku, quantidade, valor_unitario, subtotal')
+        .select('produto_variante_id, nome_produto, cor, tamanho, sku, foto, quantidade, valor_unitario, subtotal')
         .eq('pedido_id', pedidoCriado.id)
         .order('id', { ascending: true })
     ])
@@ -235,11 +239,53 @@ export default defineEventHandler(async (event) => {
 
     linhaPedido = consultaPedido.data as unknown as LinhaPedido
     linhaItens = (consultaItens.data ?? []) as unknown as LinhaItemPedido[]
+
+    const varianteIds = linhaItens.map((item) => item.produto_variante_id)
+
+    if (varianteIds.length > 0) {
+      const consultaVariantes = await admin
+        .from('produto_variante')
+        .select('id, produto_id')
+        .in('id', varianteIds)
+
+      if (!consultaVariantes.error) {
+        const variantes = (consultaVariantes.data ?? []) as unknown as Array<{
+          id: number
+          produto_id: number
+        }>
+
+        variantes.forEach((variante) => {
+          mapaProdutoId.set(variante.id, variante.produto_id)
+        })
+      }
+
+      const produtoIds = [...new Set(mapaProdutoId.values())]
+
+      if (produtoIds.length > 0) {
+        const consultaProdutos = await admin
+          .from('produtos')
+          .select('id, slug')
+          .in('id', produtoIds)
+
+        if (!consultaProdutos.error) {
+          const produtos = (consultaProdutos.data ?? []) as unknown as Array<{
+            id: number
+            slug: string | null
+          }>
+
+          produtos.forEach((produto) => {
+            mapaSlug.set(produto.id, produto.slug)
+          })
+        }
+      }
+    }
   } catch (erro) {
     console.error('[pedidos] falha ao ler pedido criado (pedido=' + pedidoCriado.id + '):', erro)
     setResponseStatus(event, 500)
     return { sucesso: false as const, mensagem: 'Pedido criado, mas não foi possível carregar seus dados.' }
   }
+
+  const siteUrl = useRuntimeConfig().public.siteUrl
 
   const pedidoFinal = {
     id: linhaPedido.id,
@@ -250,16 +296,23 @@ export default defineEventHandler(async (event) => {
     subtotal: Number(linhaPedido.subtotal),
     frete: Number(linhaPedido.frete),
     total: Number(linhaPedido.total),
-    itens: linhaItens.map((item): ItemPedidoCriado => ({
-      produto_variante_id: item.produto_variante_id,
-      nome_produto: item.nome_produto,
-      cor: item.cor,
-      tamanho: item.tamanho,
-      sku: item.sku,
-      quantidade: item.quantidade,
-      valor_unitario: Number(item.valor_unitario),
-      subtotal: Number(item.subtotal)
-    }))
+    itens: linhaItens.map((item): ItemPedidoCriado => {
+      const produtoId = mapaProdutoId.get(item.produto_variante_id)
+      const slug = produtoId !== undefined ? mapaSlug.get(produtoId) : undefined
+
+      return {
+        produto_variante_id: item.produto_variante_id,
+        nome_produto: item.nome_produto,
+        cor: item.cor,
+        tamanho: item.tamanho,
+        sku: item.sku,
+        foto: item.foto,
+        produto_url: produtoId !== undefined && slug ? urlProdutoAbsoluta(siteUrl, produtoId, slug) : null,
+        quantidade: item.quantidade,
+        valor_unitario: Number(item.valor_unitario),
+        subtotal: Number(item.subtotal)
+      }
+    })
   }
 
   setResponseStatus(event, 201)
