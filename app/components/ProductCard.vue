@@ -1,6 +1,8 @@
 <template>
   <article id="product-card" class="flex flex-col overflow-hidden rounded-luxe border border-wine-100 bg-white shadow-soft transition hover:shadow-luxe">
-    <div
+    <NuxtLink
+      :to="urlProduto(produto.produtoId, name)"
+      :aria-label="`Ver detalhes de ${name}`"
       class="flex h-56 items-center justify-center overflow-hidden bg-wine-50"
     >
       <img
@@ -11,18 +13,15 @@
         loading="lazy"
         decoding="async"
         class="h-full w-full cursor-pointer object-cover"
-        @click="emit('abrir-produto', produto)"
       />
-      <button
+      <span
         v-else
         id="product-card-placeholder"
-        type="button"
-        class="flex h-full w-full flex-col items-center justify-center font-sans text-sm text-wine-300 transition hover:bg-wine-100"
-        @click="emit('abrir-produto', produto)"
+        class="flex h-full w-full flex-col items-center justify-center font-sans text-sm text-wine-300"
       >
         Imagem
-      </button>
-    </div>
+      </span>
+    </NuxtLink>
 
     <div class="flex flex-1 flex-col gap-1 p-4">
       <h2 id="product-card-name" class="font-display text-lg font-medium text-brand">
@@ -60,13 +59,24 @@
         :disabled="!selected"
         @click="handleAddToCart"
       />
+
+      <NuxtLink
+        id="product-card-ver-detalhes"
+        :to="urlProduto(produto.produtoId, name)"
+        class="mt-2 inline-flex items-center justify-center gap-1 font-sans text-sm font-medium text-brand transition hover:text-brand-dark hover:underline"
+      >
+        Ver detalhes
+        <ArrowRightIcon class="h-4 w-4" aria-hidden="true" />
+      </NuxtLink>
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
+import { ArrowRightIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '~/components/BaseButton.vue'
 import type { ProdutoCard } from '~/composables/useProdutos'
+import { urlProduto } from '~/utils/slugProduto'
 
 interface Variante {
   id: number
@@ -88,7 +98,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'add-to-cart': [varianteId: number]
-  'abrir-produto': [produto: ProdutoCard]
 }>()
 
 const selected = ref<Variante | null>(props.variantes[0] ?? null)

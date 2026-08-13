@@ -18,38 +18,40 @@
           :name="produto.nome"
           :variantes="produto.variantes"
           @add-to-cart="handleAddToCart"
-          @abrir-produto="handleAbrirProduto"
         />
       </div>
     </section>
-
-    <VisualizarProduto
-      :aberto="visualizarAberto"
-      :produto="produtoVisualizado"
-      @fechar="visualizarAberto = false"
-    />
   </main>
 </template>
 
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
 import ProductCard from '~/components/ProductCard.vue'
-import VisualizarProduto from '~/components/VisualizarProduto.vue'
+import { useCarrinho } from '~/composables/useCarrinho'
 import { useProdutos } from '~/composables/useProdutos'
-import type { ProdutoCard } from '~/composables/useProdutos'
-
-const visualizarAberto = ref(false)
-const produtoVisualizado = ref<ProdutoCard | null>(null)
 
 const { produtos, loading, error } = useProdutos()
-
-function handleAbrirProduto(produto: ProdutoCard) {
-  produtoVisualizado.value = produto
-  visualizarAberto.value = true
-}
+const { adicionar } = useCarrinho()
 
 function handleAddToCart(varianteId: number) {
-  toast.success(`Variante ${varianteId} adicionada ao carrinho!`)
+  const produto = produtos.value?.find((p) => p.variantes.some((v) => v.id === varianteId))
+  const variante = produto?.variantes.find((v) => v.id === varianteId)
+
+  if (!produto || !variante) {
+    return
+  }
+
+  adicionar({
+    varianteId: variante.id,
+    produtoId: produto.produtoId,
+    nome: produto.nome,
+    cor: produto.cor,
+    tamanho: variante.tamanho,
+    valor: variante.valor,
+    foto: produto.foto
+  })
+
+  toast.success(`${produto.nome} (${variante.tamanho}) adicionado à sacola!`, { duration: 2000 })
 }
 
 defineOptions({ name: 'CatalogoPage' })

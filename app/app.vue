@@ -6,23 +6,13 @@
     </NuxtLayout>
     <Toaster
       position="top-center"
-      :theme="'light'"
-      rich-colors
-      :duration="4000"
+      theme="light"
+      :duration="2500"
+      :offset="24"
+      :mobile-offset="16"
       :close-button="true"
-      :toast-options="{
-        classNames: {
-          toast: 'font-sans font-medium',
-          description: 'text-sm'
-        },
-        style: {
-          padding: '14px 16px',
-          fontWeight: 500,
-          borderRadius: '16px',
-          border: '1px solid rgba(120, 41, 66, 0.25)',
-          boxShadow: '0 10px 30px rgba(120, 41, 66, 0.25)'
-        }
-      }"
+      close-button-position="top-right"
+      :visible-toasts="1"
     />
   </div>
 </template>
