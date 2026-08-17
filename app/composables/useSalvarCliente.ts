@@ -1,9 +1,9 @@
-import { useSupabaseClient } from '#imports'
+import type { ClienteCriadoResposta, ClienteMensagemErro } from '~/types/cliente-api'
 
 export interface ClienteNovo {
   nome: string
   sobrenome?: string | null
-  telefone: number | null
+  telefone: string | null
   dataNascimento?: string | null
 }
 
@@ -11,44 +11,52 @@ export interface ClienteSalvo {
   id: number
 }
 
-export function useSalvarCliente() {
-  const supabase = useSupabaseClient()
+const MENSAGEM_CONFLITO =
+  'Já existe um cliente cadastrado com esse telefone. Verifique os dados e tente novamente.'
+const MENSAGEM_FALHA = 'Não foi possível cadastrar o cliente. Tente novamente em instantes.'
 
-  async function salvar(payload: ClienteNovo): Promise<ClienteSalvo> {
-    if (payload.telefone !== null) {
-      const { data: existente } = await supabase
-        .from('clientes')
-        .select('id')
-        .eq('telefone', payload.telefone)
-        .maybeSingle()
+async function enviar(endpoint: string, payload: ClienteNovo): Promise<ClienteSalvo> {
+  const resposta = await $fetch.raw<ClienteCriadoResposta | ClienteMensagemErro>(endpoint, {
+    method: 'POST',
+    body: payload,
+    ignoreResponseError: true
+  })
 
-      if (existente) {
-        throw new Error(
-          'Já existe um cliente cadastrado com esse telefone. Verifique os dados e tente novamente.'
-        )
-      }
+  if (resposta.status >= 200 && resposta.status < 300) {
+    const dados = resposta._data as ClienteCriadoResposta | null
+
+    if (dados && typeof dados.id === 'number') {
+      return { id: dados.id }
     }
 
-    const { data: cliente, error: erroCliente } = await supabase
-      .from('clientes')
-      .insert({
-        nome: payload.nome,
-        sobrenome: payload.sobrenome ?? null,
-        telefone: payload.telefone,
-        data_nascimento: payload.dataNascimento ?? null
-      })
-      .select('id')
-      .single()
-
-    if (erroCliente) {
-      throw new Error(erroCliente.message)
-    }
-    if (!cliente) {
-      throw new Error('O cliente não foi retornado após a gravação.')
-    }
-
-    return { id: cliente.id as number }
+    throw new Error(MENSAGEM_FALHA)
   }
 
-  return { salvar }
+  if (resposta.status === 409) {
+    throw new Error(MENSAGEM_CONFLITO)
+  }
+
+  const dados = resposta._data as unknown as Record<string, unknown> | null
+  const mensagem =
+    typeof dados?.mensagem === 'string'
+      ? dados.mensagem
+      : typeof dados?.statusMessage === 'string'
+        ? dados.statusMessage
+        : typeof dados?.message === 'string'
+          ? dados.message
+          : null
+
+  throw new Error(mensagem ?? MENSAGEM_FALHA)
+}
+
+export function useSalvarCliente() {
+  async function salvarClienteAdmin(payload: ClienteNovo): Promise<ClienteSalvo> {
+    return enviar('/api/admin/clientes', payload)
+  }
+
+  async function salvarClientePublico(payload: ClienteNovo): Promise<ClienteSalvo> {
+    return enviar('/api/clientes', payload)
+  }
+
+  return { salvarClienteAdmin, salvarClientePublico }
 }

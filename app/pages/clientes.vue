@@ -32,23 +32,19 @@ import type { ClienteFormPayload } from '~/components/ModalCadastroCliente.vue'
 import TabelaClientes from '~/components/TabelaClientes.vue'
 import { useSalvarCliente } from '~/composables/useSalvarCliente'
 
-definePageMeta({ layout: 'layout-principal' })
+definePageMeta({ layout: 'layout-principal', middleware: 'admin' })
 
 const modalCadastroAberto = ref(false)
 const tabelaClientesRef = ref<InstanceType<typeof TabelaClientes> | null>(null)
 
-function telefoneParaNumero(telefone: string): number {
-  return Number(telefone.replace(/\D/g, ''))
-}
-
 async function handleClienteSalvo(payload: ClienteFormPayload) {
   try {
-    const { salvar } = useSalvarCliente()
+    const { salvarClienteAdmin } = useSalvarCliente()
 
-    await salvar({
+    await salvarClienteAdmin({
       nome: payload.nome,
       sobrenome: payload.sobrenome || null,
-      telefone: telefoneParaNumero(payload.telefone),
+      telefone: payload.telefone,
       dataNascimento: payload.dataNascimento || null
     })
 

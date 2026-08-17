@@ -9,13 +9,32 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          id: number
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           id: number
           created_at: string | null
           nome: string
           sobrenome: string | null
-          telefone: number | null
+          telefone: string | null
+          telefone_normalizado: string | null
           data_nascimento: string | null
           email: string | null
         }
@@ -24,7 +43,8 @@ export interface Database {
           created_at?: string | null
           nome: string
           sobrenome?: string | null
-          telefone?: number | null
+          telefone?: string | null
+          telefone_normalizado?: string | null
           data_nascimento?: string | null
           email?: string | null
         }
@@ -33,7 +53,8 @@ export interface Database {
           created_at?: string | null
           nome?: string
           sobrenome?: string | null
-          telefone?: number | null
+          telefone?: string | null
+          telefone_normalizado?: string | null
           data_nascimento?: string | null
           email?: string | null
         }
@@ -308,6 +329,25 @@ export interface Database {
       }
     }
     Functions: {
+      admin_atualizar_produto: {
+        Args: {
+          p_id: number
+          p_dados: Json
+        }
+        Returns: Json
+      }
+      admin_criar_produto: {
+        Args: {
+          p_dados: Json
+        }
+        Returns: Json
+      }
+      admin_excluir_produto: {
+        Args: {
+          p_id: number
+        }
+        Returns: Json
+      }
       criar_pedido: {
         Args: {
           p_itens: Json
@@ -316,6 +356,10 @@ export interface Database {
           p_observacoes?: string | null
         }
         Returns: Json
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
     }
     Enums: {

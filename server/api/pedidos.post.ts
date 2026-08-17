@@ -6,6 +6,7 @@ import { urlProdutoAbsoluta } from '~/utils/slugProduto'
 
 interface LinhaPedido {
   id: number
+  cliente_id: number | null
   nome_cliente: string
   telefone_cliente: string
   observacoes: string | null
@@ -215,7 +216,7 @@ export default defineEventHandler(async (event) => {
     const [consultaPedido, consultaItens] = await Promise.all([
       admin
         .from('pedidos')
-        .select('id, nome_cliente, telefone_cliente, observacoes, status, subtotal, frete, total')
+        .select('id, cliente_id, nome_cliente, telefone_cliente, observacoes, status, subtotal, frete, total')
         .eq('id', pedidoCriado.id)
         .single(),
       admin
@@ -289,6 +290,7 @@ export default defineEventHandler(async (event) => {
 
   const pedidoFinal = {
     id: linhaPedido.id,
+    cliente_id: linhaPedido.cliente_id,
     nome_cliente: linhaPedido.nome_cliente,
     telefone_cliente: linhaPedido.telefone_cliente,
     observacoes: linhaPedido.observacoes,

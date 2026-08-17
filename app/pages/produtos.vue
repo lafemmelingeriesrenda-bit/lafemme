@@ -156,13 +156,13 @@ import {
   TrashIcon
 } from '@heroicons/vue/24/outline'
 import { toast } from 'vue-sonner'
-import { useSupabaseClient } from '#imports'
 import ModalProduto from '~/components/ModalProduto.vue'
-import type { ProdutoFormPayload } from '~/components/ModalProduto.vue'
+import type { ProdutoFormPayload, ProdutoVarianteInicial } from '~/components/ModalProduto.vue'
 import { useBuscaProdutos } from '~/composables/useBuscaProdutos'
 import { useSalvarProduto } from '~/composables/useSalvarProduto'
+import type { AdminProdutoDetalhe, AdminProdutoLista } from '~/types/produto-admin'
 
-definePageMeta({ layout: 'layout-principal' })
+definePageMeta({ layout: 'layout-principal', middleware: 'admin' })
 
 interface VarianteDetalhe {
   id: number
@@ -181,69 +181,37 @@ interface ProdutoRow {
   variantes: VarianteDetalhe[]
 }
 
+interface ProdutoInicialModal {
+  nome: string
+  descricao: string | null
+  categoria: string | null
+  capa?: { url: string } | null
+  variantes?: ProdutoVarianteInicial[]
+}
+
 const busca = ref('')
 const expandidos = ref<Set<number>>(new Set())
 const modalAberto = ref(false)
 const modalEdicao = ref(false)
 const modalId = ref<number | null>(null)
-const modalInicial = ref<ProdutoRow | null>(null)
-
-const supabase = useSupabaseClient()
+const modalInicial = ref<ProdutoInicialModal | null>(null)
 
 const { data: produtos, pending, error: queryError, refresh } = useAsyncData('produtos_admin', async () => {
-  const [
-    { data, error },
-    { data: fotos, error: erroFotos },
-    { data: variantes, error: erroVariantes }
-  ] = await Promise.all([
-    supabase
-      .from('produtos')
-      .select('id, nome, descricao, categoria')
-      .order('id'),
-    supabase
-      .from('produto_variante')
-      .select('produto_id, foto')
-      .not('foto', 'is', null)
-      .order('produto_id'),
-    supabase
-      .from('produto_variante')
-      .select('id, produto_id, cor, tamanho, valor, quantidade')
-  ])
+  const lista = await $fetch<AdminProdutoLista[]>('/api/admin/produtos')
 
-  if (error) {
-    throw new Error(error.message)
-  }
-  if (erroFotos) {
-    throw new Error(erroFotos.message)
-  }
-  if (erroVariantes) {
-    throw new Error(erroVariantes.message)
-  }
-
-  const fotoPorProduto = new Map<number, string>()
-  for (const item of fotos ?? []) {
-    if (!fotoPorProduto.has(item.produto_id) && item.foto) {
-      fotoPorProduto.set(item.produto_id, item.foto)
-    }
-  }
-
-  const variantesPorProduto = new Map<number, VarianteDetalhe[]>()
-  for (const item of variantes ?? []) {
-    const lista = variantesPorProduto.get(item.produto_id) ?? []
-    lista.push({
-      id: item.id,
-      cor: item.cor,
-      tamanho: item.tamanho,
-      valor: item.valor,
-      quantidade: item.quantidade
-    })
-    variantesPorProduto.set(item.produto_id, lista)
-  }
-
-  return ((data ?? []) as Exclude<ProdutoRow, 'foto' | 'variantes'>[]).map((p) => ({
-    ...p,
-    foto: fotoPorProduto.get(p.id) ?? null,
-    variantes: variantesPorProduto.get(p.id) ?? []
+  return lista.map((p): ProdutoRow => ({
+    id: p.id,
+    nome: p.nome,
+    descricao: p.descricao,
+    categoria: p.categoria,
+    foto: p.capa,
+    variantes: p.variantes.map((v) => ({
+      id: v.id,
+      cor: v.cor,
+      tamanho: v.tamanho,
+      valor: v.valor,
+      quantidade: v.quantidade
+    }))
   }))
 })
 
@@ -273,54 +241,27 @@ async function handleEditar(produto: ProdutoRow) {
   modalEdicao.value = true
   modalId.value = produto.id
 
-  const { data: variantes, error: erroVariantes } = await supabase
-    .from('produto_variante')
-    .select('id, cor, tamanho, valor, quantidade, foto')
-    .eq('produto_id', produto.id)
+  try {
+    const detalhe = await $fetch<AdminProdutoDetalhe>(`/api/admin/produtos/${produto.id}`)
 
-  if (erroVariantes) {
-    toast.error(erroVariantes.message)
-    return
+    modalInicial.value = {
+      nome: detalhe.nome,
+      descricao: detalhe.descricao,
+      categoria: detalhe.categoria,
+      capa: detalhe.capa ? { url: detalhe.capa } : null,
+      variantes: detalhe.variantes.map((v) => ({
+        cor: v.cor,
+        tamanho: v.tamanho,
+        valor: v.valor,
+        quantidade: v.quantidade,
+        imagens: v.fotos.map((url) => ({ url }))
+      }))
+    }
+
+    modalAberto.value = true
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Erro ao carregar o produto.')
   }
-
-  const idsVariantes = (variantes ?? []).map((v) => v.id as number)
-
-  const { data: fotos, error: erroFotos } = idsVariantes.length
-    ? await supabase
-        .from('foto_variante')
-        .select('url, id_variante')
-        .in('id_variante', idsVariantes)
-    : { data: [], error: null }
-
-  if (erroFotos) {
-    toast.error(erroFotos.message)
-    return
-  }
-
-  const fotosPorVariante = new Map<number, string[]>()
-  for (const foto of fotos ?? []) {
-    const lista = fotosPorVariante.get(foto.id_variante) ?? []
-    lista.push(foto.url)
-    fotosPorVariante.set(foto.id_variante, lista)
-  }
-
-  modalInicial.value = {
-    nome: produto.nome,
-    descricao: produto.descricao,
-    categoria: produto.categoria,
-    capa: (variantes ?? []).find((v) => v.foto)?.foto
-      ? { url: (variantes ?? []).find((v) => v.foto)?.foto as string }
-      : null,
-    variantes: (variantes ?? []).map((v) => ({
-      cor: v.cor,
-      tamanho: v.tamanho,
-      valor: v.valor as number | null,
-      quantidade: v.quantidade as number | null,
-      imagens: (fotosPorVariante.get(v.id as number) ?? []).map((url) => ({ url }))
-    }))
-  }
-
-  modalAberto.value = true
 }
 
 async function handleSalvo(payload: ProdutoFormPayload) {

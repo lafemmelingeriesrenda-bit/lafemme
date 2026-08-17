@@ -55,34 +55,14 @@
 
 <script setup lang="ts">
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
-import { useSupabaseClient } from '#imports'
-
-interface ClienteRow {
-  id: number
-  nome: string | null
-  sobrenome: string | null
-  telefone: number | null
-  data_nascimento: string | null
-  created_at: string
-}
+import type { AdminCliente } from '~/types/cliente-api'
 
 const busca = ref('')
-
-const supabase = useSupabaseClient()
 
 const { data: clientes, pending, error: queryError, refresh } = await useAsyncData(
   'clientes_admin',
   async () => {
-    const { data, error } = await supabase
-      .from('clientes')
-      .select('id, nome, sobrenome, telefone, data_nascimento, created_at')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    return (data ?? []) as Exclude<ClienteRow, never>[]
+    return await $fetch<AdminCliente[]>('/api/admin/clientes')
   }
 )
 
@@ -93,7 +73,7 @@ const error = computed(() => queryError.value?.message ?? null)
 
 const filtrados = computed(() => {
   const termo = busca.value.trim().toLowerCase()
-  const rows: ClienteRow[] = Array.isArray(clientes.value) ? clientes.value : []
+  const rows: AdminCliente[] = Array.isArray(clientes.value) ? clientes.value : []
 
   if (!termo) {
     return rows
@@ -110,11 +90,11 @@ function nomeCompleto(nome: string | null, sobrenome: string | null): string {
   return [nome, sobrenome].filter(Boolean).join(' ')
 }
 
-function telefoneTexto(telefone: number | null): string {
-  if (telefone === null || Number.isNaN(telefone)) {
+function telefoneTexto(telefone: string | null): string {
+  if (!telefone) {
     return '—'
   }
-  const digitos = String(telefone).replace(/\D/g, '')
+  const digitos = telefone.replace(/\D/g, '')
   return digitos.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
 }
 

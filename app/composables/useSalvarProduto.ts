@@ -1,7 +1,5 @@
-import { useSupabaseClient } from '#imports'
-import { slugBase, slugComSufixo } from '~/utils/slugProduto'
-
-export const BUCKET_LA_FEMME = 'La Femme'
+import type { AdminProdutoPayload } from '~/types/produto-admin'
+import { BUCKET_LA_FEMME } from '~/utils/produtoAdmin'
 
 export interface ItemImagem {
   id: string
@@ -45,187 +43,83 @@ export interface ProdutoSalvo {
 }
 
 export function useSalvarProduto() {
-  const supabase = useSupabaseClient()
-
   async function uploadImagem(arquivo: File): Promise<string> {
-    const caminho = `produtos/${crypto.randomUUID()}-${arquivo.name}`
+    const formData = new FormData()
+    formData.append('file', arquivo)
 
-    const { error: erroUpload } = await supabase.storage
-      .from(BUCKET_LA_FEMME)
-      .upload(caminho, arquivo, {
-        cacheControl: '3600',
-        upsert: false
-      })
+    const resposta = await $fetch<{ url: string }>('/api/admin/upload', {
+      method: 'POST',
+      body: formData
+    })
 
-    if (erroUpload) {
-      throw new Error(`Erro ao enviar a imagem "${arquivo.name}": ${erroUpload.message}`)
-    }
-
-    const { data } = supabase.storage.from(BUCKET_LA_FEMME).getPublicUrl(caminho)
-    return data.publicUrl
+    return resposta.url
   }
 
   async function resolverImagem(item: ItemImagem | null | undefined): Promise<string | null> {
     if (!item) {
       return null
     }
+
     if (item.url) {
       return item.url
     }
+
     if (item.file) {
       return uploadImagem(item.file)
     }
+
     return null
   }
 
-  async function inserirVariantes(produtoId: number, variantes: VarianteNovo[], urlCapa: string | null) {
-    const variantesSalvas: VarianteSalva[] = []
+  async function resolverImagens(itens: ItemImagem[]): Promise<string[]> {
+    const urls: string[] = []
 
-    for (const v of variantes) {
-      const { data: variante, error: erroVariante } = await supabase
-        .from('produto_variante')
-        .insert({
-          produto_id: produtoId,
-          cor: v.cor ?? null,
-          tamanho: v.tamanho,
-          valor: v.valor,
-          quantidade: v.quantidade,
-          sku: v.sku ?? null,
-          foto: urlCapa,
-          ativo: true
-        })
-        .select('id')
-        .single()
-
-      if (erroVariante) {
-        throw new Error(erroVariante.message)
+    for (const item of itens) {
+      const url = await resolverImagem(item)
+      if (url) {
+        urls.push(url)
       }
-      if (!variante) {
-        throw new Error('A variante não foi retornada após a gravação.')
-      }
+    }
 
-      const varianteId = variante.id as number
+    return urls
+  }
 
-      const fotos: FotoVarianteNova[] = []
-      for (const imagem of v.imagens) {
-        const url = await resolverImagem(imagem)
-        if (!url) {
-          continue
-        }
+  async function montarPayload(payload: ProdutoNovo): Promise<AdminProdutoPayload> {
+    const capa = await resolverImagem(payload.capa)
 
-        const { data: foto, error: erroFoto } = await supabase
-          .from('foto_variante')
-          .insert({
-            url,
-            id_variante: varianteId
-          })
-          .select('id')
-          .single()
+    const variantes: AdminProdutoPayload['variantes'] = []
 
-        if (erroFoto) {
-          throw new Error(erroFoto.message)
-        }
-        if (!foto) {
-          throw new Error('A foto não foi retornada após a gravação.')
-        }
+    for (const v of payload.variantes) {
+      const imagens = await resolverImagens(v.imagens)
 
-        fotos.push({
-          id: foto.id as number,
-          url,
-          idVariante: varianteId
-        })
-      }
-
-      variantesSalvas.push({
-        id: varianteId,
-        produtoId,
-        fotos
+      variantes.push({
+        cor: v.cor ?? null,
+        tamanho: v.tamanho,
+        valor: v.valor,
+        quantidade: v.quantidade,
+        sku: v.sku ?? null,
+        imagens
       })
     }
 
-    return variantesSalvas
-  }
-
-  async function buscarSlugsEmUso(excluir?: string | null): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('produtos')
-      .select('slug')
-      .not('slug', 'is', null)
-
-    if (error) {
-      throw new Error(error.message)
+    return {
+      nome: payload.nome,
+      descricao: payload.descricao ?? null,
+      categoria: payload.categoria ?? null,
+      capa,
+      variantes
     }
-
-    return (data ?? [])
-      .map((registro) => registro.slug as string | null)
-      .filter((slug): slug is string => typeof slug === 'string' && slug.length > 0)
-      .filter((slug) => slug !== excluir)
-  }
-
-  async function gerarSlug(nome: string, produtoId: number, slugAtual: string | null): Promise<string> {
-    const base = slugBase(nome, produtoId)
-
-    for (let tentativa = 0; tentativa < 20; tentativa += 1) {
-      const emUso = await buscarSlugsEmUso(slugAtual)
-      const candidato = slugComSufixo(base, emUso)
-
-      const { error } = await supabase
-        .from('produtos')
-        .update({ slug: candidato })
-        .eq('id', produtoId)
-
-      if (!error) {
-        return candidato
-      }
-
-      const codigo = (error as { code?: string } | null)?.code
-      if (codigo !== '23505') {
-        throw new Error(error.message)
-      }
-    }
-
-    throw new Error('Não foi possível gerar um slug único para o produto.')
-  }
-
-  async function resolverSlug(
-    produtoId: number,
-    nome: string,
-    slugAtual: string | null,
-    nomeAtual: string | null
-  ): Promise<string> {
-    if (slugAtual && nomeAtual === nome) {
-      return slugAtual
-    }
-
-    return gerarSlug(nome, produtoId, slugAtual)
   }
 
   async function salvar(payload: ProdutoNovo): Promise<ProdutoSalvo> {
-    const { data: produto, error: erroProduto } = await supabase
-      .from('produtos')
-      .insert({
-        nome: payload.nome,
-        descricao: payload.descricao ?? null,
-        categoria: payload.categoria ?? null
-      })
-      .select('id, slug')
-      .single()
+    const body = await montarPayload(payload)
 
-    if (erroProduto) {
-      throw new Error(erroProduto.message)
-    }
-    if (!produto) {
-      throw new Error('O produto não foi retornado após a gravação.')
-    }
+    const criado = await $fetch<{ id: number }>('/api/admin/produtos', {
+      method: 'POST',
+      body
+    })
 
-    const produtoId = produto.id as number
-
-    await resolverSlug(produtoId, payload.nome, produto.slug as string | null, null)
-
-    const urlCapa = await resolverImagem(payload.capa)
-    const variantes = await inserirVariantes(produtoId, payload.variantes, urlCapa)
-
-    return { id: produtoId, variantes }
+    return { id: criado.id, variantes: [] }
   }
 
   async function atualizar(payload: ProdutoNovo): Promise<ProdutoSalvo> {
@@ -233,57 +127,14 @@ export function useSalvarProduto() {
       throw new Error('Informe o identificador do produto para editá-lo.')
     }
 
-    const { data: atual, error: erroBusca } = await supabase
-      .from('produtos')
-      .select('id, nome, slug')
-      .eq('id', payload.id)
-      .single()
+    const body = await montarPayload(payload)
 
-    if (erroBusca) {
-      throw new Error(erroBusca.message)
-    }
-    if (!atual) {
-      throw new Error('Produto não encontrado para atualização.')
-    }
+    const atualizado = await $fetch<{ id: number }>(`/api/admin/produtos/${payload.id}`, {
+      method: 'PATCH',
+      body
+    })
 
-    const produtoId = atual.id as number
-
-    const { data: produto, error: erroProduto } = await supabase
-      .from('produtos')
-      .update({
-        nome: payload.nome,
-        descricao: payload.descricao ?? null,
-        categoria: payload.categoria ?? null
-      })
-      .eq('id', produtoId)
-      .select('id')
-      .single()
-
-    if (erroProduto) {
-      throw new Error(erroProduto.message)
-    }
-    if (!produto) {
-      throw new Error('O produto não foi retornado após a atualização.')
-    }
-
-    await resolverSlug(produtoId, payload.nome, atual.slug as string | null, atual.nome as string | null)
-
-    const { data: variantesAntigas } = await supabase
-      .from('produto_variante')
-      .select('id')
-      .eq('produto_id', produtoId)
-
-    const idsAntigos = (variantesAntigas ?? []).map((v) => v.id as number)
-
-    if (idsAntigos.length > 0) {
-      await supabase.from('foto_variante').delete().in('id_variante', idsAntigos)
-      await supabase.from('produto_variante').delete().in('id', idsAntigos)
-    }
-
-    const urlCapa = await resolverImagem(payload.capa)
-    const variantes = await inserirVariantes(produtoId, payload.variantes, urlCapa)
-
-    return { id: produtoId, variantes }
+    return { id: atualizado.id, variantes: [] }
   }
 
   return { salvar, atualizar, uploadImagem, resolverImagem, bucket: BUCKET_LA_FEMME }

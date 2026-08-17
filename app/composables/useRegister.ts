@@ -24,20 +24,6 @@ export function useRegister() {
       throw new Error(error.message)
     }
 
-    if (data.user) {
-      const phoneNumber = Number(phone.replace(/\D/g, '')) || null
-      const { error: insertError } = await supabase.from('usuario').insert({
-        uid: data.user.id,
-        nome: name,
-        sobrenome: lastName,
-        telefone: phoneNumber,
-        email
-      })
-      if (insertError) {
-        throw new Error(insertError.message)
-      }
-    }
-
     await navigateTo('/')
   }
 

@@ -18,6 +18,7 @@ const payload = {
 
 const pedidoCriado: PedidoCriado = {
   id: 7,
+  cliente_id: null,
   nome_cliente: 'Ana Silva',
   telefone_cliente: '34999999999',
   observacoes: null,

@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from '#supabase/server'
+import { serverSupabaseServiceRole } from '#supabase/server'
 import type { H3Event } from 'h3'
 import type {
   ErroValidacaoCarrinho,
@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const supabase = await serverSupabaseClient(event)
+  const supabase = await serverSupabaseServiceRole(event)
 
   const ids = variantes.map((variante) => variante.varianteId)
 

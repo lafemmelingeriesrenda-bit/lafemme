@@ -1,0 +1,35 @@
+-- ============================================================
+-- La Femme — Fase 1: seed dos administradores (NO-OP)
+--
+-- Histórico:
+--   Esta migration originalmente promovia usuários existentes do
+--   auth.users (identificados por e-mail) a administradores em
+--   public.admin_users, e falhava com RAISE EXCEPTION quando algum
+--   e-mail referenciado não existia em auth.users. Entre os e-mails
+--   referenciados estava uma conta de teste que foi removida do
+--   projeto.
+--
+-- Por que foi esvaziada:
+--   1. Migrations versionadas precisam ser reproduzíveis em um banco
+--      novo. O seed dependia de contas criadas manualmente no
+--      auth.users (e de uma conta de teste), portanto quebrava — ou
+--      silenciosamente não fazia nada — em um banco recém-criado.
+--   2. Referenciava dados pessoais (e-mails) dentro do repositório.
+--   3. A promoção de administradores é uma decisão operacional e
+--      ambiente-específica, não estrutural.
+--
+-- A estrutura (tabela public.admin_users) é criada na migration
+-- 20260814100000_admin_users.sql e NÃO depende deste seed.
+--
+-- Como promover administradores hoje (por ambiente, manualmente):
+--   insert into public.admin_users (user_id)
+--   select au.id
+--     from auth.users au
+--    where au.email in ('email-do-admin@exemplo.com')
+--   on conflict (user_id) do nothing;
+--   Nunca use contas de teste nem insira UUIDs arbitrários.
+-- ============================================================
+
+-- No-op intencional: preserva o número de migrations do histórico
+-- sem afetar a reprodução em banco novo.
+select 1;

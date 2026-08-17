@@ -208,11 +208,11 @@ import {
   type VarianteProdutoPublico
 } from '~/composables/useProdutoPublico'
 import { caminhoProdutoSeSlugDiferente, urlProduto } from '~/utils/slugProduto'
+import type { FotosProdutoResposta } from '~/types/fotos-produto'
 
 defineOptions({ name: 'PaginaProduto' })
 
 const route = useRoute()
-const supabase = useSupabaseClient()
 const requestUrl = useRequestURL()
 
 const id = Number(route.params.id)
@@ -326,14 +326,12 @@ function carregarFotosComplementares(produtoPublico: ProdutoPublico): void {
     return
   }
 
-  supabase
-    .from('foto_variante')
-    .select('url')
-    .in('id_variante', ids)
-    .then(({ data, error }) => {
-      if (!error) {
-        fotosComplementares.value = (data ?? []).map((f) => f.url).filter(Boolean)
-      }
+  $fetch<FotosProdutoResposta>(`/api/produtos/${produtoPublico.id}/fotos`)
+    .then((resposta) => {
+      fotosComplementares.value = resposta.fotos
+    })
+    .catch(() => {
+      fotosComplementares.value = []
     })
 }
 

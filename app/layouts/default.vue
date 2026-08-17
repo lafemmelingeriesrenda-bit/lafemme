@@ -28,18 +28,14 @@ import { useSalvarCliente } from '~/composables/useSalvarCliente'
 const modalCadastroAberto = ref(false)
 const sacolaAberta = ref(false)
 
-function telefoneParaNumero(telefone: string): number {
-  return Number(telefone.replace(/\D/g, ''))
-}
-
 async function handleClienteSalvo(payload: ClienteFormPayload) {
   try {
-    const { salvar } = useSalvarCliente()
+    const { salvarClientePublico } = useSalvarCliente()
 
-    await salvar({
+    await salvarClientePublico({
       nome: payload.nome,
       sobrenome: payload.sobrenome || null,
-      telefone: telefoneParaNumero(payload.telefone),
+      telefone: payload.telefone,
       dataNascimento: payload.dataNascimento || null
     })
 

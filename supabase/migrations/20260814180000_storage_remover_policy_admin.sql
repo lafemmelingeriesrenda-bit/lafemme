@@ -1,0 +1,31 @@
+-- ============================================================
+-- La Femme — Fase 5D-1: Remoção do bypass direto do Storage
+--
+-- Contexto: a policy "Administrador Storage La Femme" em
+-- storage.objects concedia ALL a "authenticated" com condição
+-- fixa no UUID da administradora,
+-- criando um caminho direto:
+--   Browser -> Storage API -> policy authenticated -> write
+-- que contorna as validações do endpoint /api/admin/upload
+-- (MIME/tamanho) e o modelo "somente fluxo server-side".
+--
+-- Objetivo: manter somente
+--   Browser -> /api/admin/upload -> requireAdmin() ->
+--   Service Role -> Storage
+--
+-- Escopo (apenas isso):
+--   - drop policy "Administrador Storage La Femme" on storage.objects
+--
+-- Idempotente (drop policy if exists).
+--
+-- Não altera: bucket (public/limites), RLS, CREATE POLICY,
+-- storage.objects/buckets (dados), endpoints, frontend, RPCs,
+-- is_admin(), criar_pedido(), RLS das tabelas, outras tabelas.
+--
+-- IMPORTANTE: NÃO executar via supabase db push. Aplicar de forma
+-- controlada com:
+--   supabase db query --linked --file supabase/migrations/20260814180000_storage_remover_policy_admin.sql
+-- ============================================================
+
+drop policy if exists "Administrador Storage La Femme"
+on storage.objects;

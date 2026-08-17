@@ -15,6 +15,7 @@ export interface ItemPedidoCriado {
 
 export interface PedidoCriado {
   id: number
+  cliente_id: number | null
   nome_cliente: string
   telefone_cliente: string
   observacoes: string | null

@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import BaseButton from '~/components/BaseButton.vue'
 
-definePageMeta({ layout: 'layout-principal' })
+definePageMeta({ layout: 'layout-principal', middleware: 'admin' })
 
 defineOptions({ name: 'IndexPage' })
 

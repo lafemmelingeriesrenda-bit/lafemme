@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'layout-principal' })
+definePageMeta({ layout: 'layout-principal', middleware: 'admin' })
 
 defineOptions({ name: 'ComprasPage' })
 </script>
