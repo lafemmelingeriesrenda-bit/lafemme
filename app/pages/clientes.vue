@@ -1,18 +1,16 @@
 <template>
-  <main class="flex flex-1 flex-col px-6 py-10">
-    <header
-      id="clientes-header"
-      class="mb-6 flex items-center justify-between gap-4 border-b border-wine-100 pb-4"
-    >
-      <h1 class="font-display text-3xl font-semibold text-brand">Clientes</h1>
-      <BaseButton
-        id="clientes-novo"
-        label="Novo cliente"
-        variant="primary"
-        size="md"
-        @click="modalCadastroAberto = true"
-      />
-    </header>
+  <main class="flex min-w-0 flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+    <AdminHeader titulo="Clientes" class="mb-6">
+      <template #acoes>
+        <BaseButton
+          id="clientes-novo"
+          label="Novo cliente"
+          variant="primary"
+          size="md"
+          @click="modalCadastroAberto = true"
+        />
+      </template>
+    </AdminHeader>
 
     <TabelaClientes ref="tabelaClientesRef" />
 
@@ -26,6 +24,7 @@
 
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
+import AdminHeader from '~/components/AdminHeader.vue'
 import BaseButton from '~/components/BaseButton.vue'
 import ModalCadastroCliente from '~/components/ModalCadastroCliente.vue'
 import type { ClienteFormPayload } from '~/components/ModalCadastroCliente.vue'

@@ -4,7 +4,11 @@
     :type="type"
     :disabled="disabled || loading"
     class="inline-flex items-center justify-center gap-2 rounded-luxe font-sans font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
-    :class="[sizeClasses[size], variantClasses[variant]]"
+    :class="[
+      sizeClasses[size],
+      variantClasses[variant],
+      fullWidth ? 'w-full sm:w-auto' : ''
+    ]"
     @click="emit('click')"
   >
     <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -23,6 +27,7 @@ interface Props {
   size?: 'sm' | 'md' | 'lg'
   disabled?: boolean
   loading?: boolean
+  fullWidth?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
@@ -32,7 +37,8 @@ withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
   disabled: false,
-  loading: false
+  loading: false,
+  fullWidth: false
 })
 
 const emit = defineEmits<{

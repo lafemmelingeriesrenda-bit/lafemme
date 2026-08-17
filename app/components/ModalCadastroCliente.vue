@@ -38,6 +38,7 @@
         label="Cancelar"
         variant="outline"
         size="md"
+        full-width
         @click="emit('fechar')"
       />
       <BaseButton
@@ -45,6 +46,7 @@
         label="Salvar"
         variant="primary"
         size="md"
+        full-width
         @click="handleSalvar"
       />
     </template>

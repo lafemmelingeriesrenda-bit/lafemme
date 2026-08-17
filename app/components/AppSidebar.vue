@@ -2,13 +2,16 @@
   <aside
     id="app-sidebar"
     data-testid="app-sidebar"
-    class="sticky top-0 flex h-screen shrink-0 flex-col border-r border-wine-100 bg-white transition-all duration-300"
-    :class="collapsed ? 'w-20' : 'w-64'"
+    class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-wine-100 bg-white transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0"
+    :class="[
+      aberto ? 'translate-x-0' : '-translate-x-full',
+      collapsed ? 'lg:w-20' : 'lg:w-64'
+    ]"
   >
     <div
       id="app-sidebar-header"
-      class="flex items-center gap-2 border-b border-wine-100 px-3 py-3"
-      :class="collapsed ? 'justify-center' : 'justify-between'"
+      class="flex items-center justify-between gap-2 border-b border-wine-100 px-3 py-3"
+      :class="collapsed ? 'lg:justify-center' : 'lg:justify-between'"
     >
       <img
         v-if="!collapsed"
@@ -21,7 +24,7 @@
       <button
         id="app-sidebar-toggle"
         type="button"
-        class="rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50"
+        class="hidden rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50 lg:inline-flex"
         :title="collapsed ? 'Abrir' : 'Fechar'"
         @click="collapsed = !collapsed"
       >
@@ -29,6 +32,17 @@
           :is="collapsed ? ChevronRightIcon : ChevronLeftIcon"
           class="h-6 w-6"
         />
+      </button>
+
+      <button
+        id="app-sidebar-fechar"
+        type="button"
+        class="rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50 lg:hidden"
+        title="Fechar menu"
+        aria-label="Fechar menu"
+        @click="fechar"
+      >
+        <XMarkIcon class="h-6 w-6" />
       </button>
     </div>
 
@@ -40,13 +54,13 @@
         type="button"
         class="flex items-center gap-3 rounded-luxe px-3 py-3 font-sans text-sm font-medium transition"
         :class="[
-          collapsed ? 'justify-center px-2' : 'justify-start',
+          collapsed ? 'lg:justify-center lg:px-2' : 'lg:justify-start',
           isActive(item)
             ? 'bg-brand text-cream'
             : 'text-wine-700 hover:bg-wine-50'
         ]"
         :aria-current="isActive(item) ? 'page' : undefined"
-        @click="navigateTo(item.to)"
+        @click="handleNavegar(item)"
       >
         <component :is="item.icon" class="h-6 w-6 shrink-0" />
         <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
@@ -72,9 +86,11 @@ import {
   CubeIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
-  UsersIcon
+  UsersIcon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline'
 import { useAuth } from '~/composables/useAuth'
+import { useMenuAdmin } from '~/composables/useMenuAdmin'
 
 interface NavItem {
   id: string
@@ -89,6 +105,7 @@ const collapsed = ref(false)
 const route = useRoute()
 
 const { user } = useAuth()
+const { aberto, fechar } = useMenuAdmin()
 
 const userInfo = computed(() => {
   const name = user.value?.user_metadata?.name as string | undefined
@@ -100,6 +117,11 @@ const userInfo = computed(() => {
 
 function isActive(item: NavItem): boolean {
   return route.path === item.to
+}
+
+function handleNavegar(item: NavItem) {
+  navigateTo(item.to)
+  fechar()
 }
 
 const items: NavItem[] = [

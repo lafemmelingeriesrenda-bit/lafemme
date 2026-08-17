@@ -37,7 +37,7 @@
 
         <footer
           id="base-modal-footer"
-          class="flex items-center justify-end gap-3 border-t border-wine-100 px-6 py-4"
+          class="flex flex-col gap-3 border-t border-wine-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6"
         >
           <slot name="footer">
             <BaseButton
@@ -45,6 +45,7 @@
               :label="textoCancelar"
               variant="outline"
               size="md"
+              full-width
               @click="emit('fechar')"
             />
             <BaseButton
@@ -52,6 +53,7 @@
               :label="textoConfirmar"
               variant="primary"
               size="md"
+              full-width
               @click="emit('confirmar')"
             />
           </slot>

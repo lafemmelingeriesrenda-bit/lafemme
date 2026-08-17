@@ -30,8 +30,8 @@
           <tr>
             <th id="tabela-clientes-th-nome" class="px-6 py-3 font-semibold">Nome</th>
             <th id="tabela-clientes-th-telefone" class="px-6 py-3 font-semibold">Telefone</th>
-            <th id="tabela-clientes-th-nascimento" class="px-6 py-3 font-semibold">Nascimento</th>
-            <th id="tabela-clientes-th-criado" class="px-6 py-3 font-semibold">Cadastrado em</th>
+            <th id="tabela-clientes-th-nascimento" class="hidden px-6 py-3 font-semibold md:table-cell">Nascimento</th>
+            <th id="tabela-clientes-th-criado" class="hidden px-6 py-3 font-semibold md:table-cell">Cadastrado em</th>
           </tr>
         </thead>
         <tbody>
@@ -44,8 +44,8 @@
               {{ nomeCompleto(cliente.nome, cliente.sobrenome) }}
             </td>
             <td class="px-6 py-3 text-wine-700">{{ telefoneTexto(cliente.telefone) }}</td>
-            <td class="px-6 py-3 text-wine-700">{{ dataTexto(cliente.data_nascimento) }}</td>
-            <td class="px-6 py-3 text-wine-500">{{ dataTexto(cliente.created_at) }}</td>
+            <td class="hidden px-6 py-3 text-wine-700 md:table-cell">{{ dataTexto(cliente.data_nascimento) }}</td>
+            <td class="hidden px-6 py-3 text-wine-500 md:table-cell">{{ dataTexto(cliente.created_at) }}</td>
           </tr>
         </tbody>
       </table>

@@ -66,7 +66,7 @@
               </button>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <BaseInput
                 v-model="variante.cor"
                 label="Cor"
@@ -81,7 +81,7 @@
               />
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <BaseInput
                 v-model="variante.quantidade"
                 label="Quantidade"
@@ -139,6 +139,7 @@
         label="Cancelar"
         variant="outline"
         size="md"
+        full-width
         @click="emit('fechar')"
       />
       <BaseButton
@@ -147,6 +148,7 @@
         label="Voltar"
         variant="ghost"
         size="md"
+        full-width
         @click="passo = 1"
       />
       <BaseButton
@@ -154,6 +156,7 @@
         :label="passo === 2 ? (isEdicao ? 'Atualizar Produto' : 'Adicionar Produto') : 'Próximo'"
         variant="primary"
         size="md"
+        full-width
         @click="handleProximoOuSalvar"
       />
     </template>

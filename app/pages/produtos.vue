@@ -1,21 +1,18 @@
 <template>
-  <main class="flex flex-1 flex-col px-6 py-10">
-    <header
-      id="produtos-header"
-      class="flex items-center justify-between gap-4 border-b border-wine-100 pb-4"
-    >
-      <h1 class="shrink-0 font-display text-3xl font-semibold text-brand">Produtos</h1>
-
-      <button
-        id="produtos-add"
-        type="button"
-        class="shrink-0 flex items-center gap-2 rounded-luxe bg-brand px-4 py-2 font-sans text-sm font-medium text-cream transition hover:bg-brand-light"
-        @click="handleAdicionar"
-      >
-        <PlusIcon class="h-5 w-5" />
-        Adicionar produto
-      </button>
-    </header>
+  <main class="flex min-w-0 flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+    <AdminHeader titulo="Produtos">
+      <template #acoes>
+        <button
+          id="produtos-add"
+          type="button"
+          class="flex items-center gap-2 rounded-luxe bg-brand px-4 py-2 font-sans text-sm font-medium text-cream transition hover:bg-brand-light"
+          @click="handleAdicionar"
+        >
+          <PlusIcon class="h-5 w-5" />
+          Adicionar produto
+        </button>
+      </template>
+    </AdminHeader>
 
     <div id="produtos-search" class="relative mt-6 max-w-md">
       <MagnifyingGlassIcon
@@ -38,7 +35,91 @@
       {{ error }}
     </p>
 
-    <div v-else class="mt-6 overflow-x-auto rounded-luxe border border-wine-100 bg-white shadow-soft">
+    <div v-else class="mt-6">
+      <div id="produtos-cards" class="flex flex-col gap-4 md:hidden">
+        <article
+          v-for="produto in filtrados"
+          :key="produto.id"
+          class="rounded-luxe border border-wine-100 bg-white p-4 shadow-soft"
+        >
+          <div class="flex items-center gap-3">
+            <img
+              v-if="produto.foto"
+              :src="produto.foto"
+              :alt="`Capa de ${produto.nome}`"
+              class="h-14 w-14 shrink-0 rounded-luxe border border-wine-100 object-cover"
+            />
+            <div
+              v-else
+              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-luxe border border-dashed border-wine-200 bg-wine-50 text-xs text-wine-300"
+            >
+              —
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <h3 class="truncate font-sans text-sm font-medium text-brand">
+                {{ produto.nome }}
+              </h3>
+              <p class="mt-0.5 truncate font-sans text-xs text-wine-700">
+                {{ produto.categoria ?? '—' }}
+              </p>
+              <p class="mt-1 font-sans text-xs text-wine-500">
+                {{ resumoVariantes(produto) }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-3 flex items-center gap-2 border-t border-wine-100 pt-3">
+            <button
+              :id="`produtos-mobile-expandir-${produto.id}`"
+              type="button"
+              class="flex items-center gap-1.5 rounded-luxe px-2 py-1.5 text-wine-700 transition hover:bg-wine-50"
+              :title="expandidos.has(produto.id) ? 'Recolher variações' : 'Ver variações'"
+              @click="toggleExpandir(produto.id)"
+            >
+              <component
+                :is="expandidos.has(produto.id) ? ChevronDownIcon : ChevronRightIcon"
+                class="h-5 w-5"
+              />
+              <span class="font-sans text-xs font-medium">
+                {{ expandidos.has(produto.id) ? 'Recolher' : 'Variações' }}
+              </span>
+            </button>
+
+            <div class="ml-auto flex items-center gap-1">
+              <button
+                :id="`produtos-mobile-edit-${produto.id}`"
+                type="button"
+                class="rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50"
+                title="Editar"
+                @click="handleEditar(produto)"
+              >
+                <PencilSquareIcon class="h-5 w-5" />
+              </button>
+              <button
+                :id="`produtos-mobile-delete-${produto.id}`"
+                type="button"
+                class="rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50"
+                title="Deletar"
+              >
+                <TrashIcon class="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            v-if="expandidos.has(produto.id)"
+            class="mt-3 border-t border-wine-100 pt-3"
+          >
+            <ProdutoVariantes :variantes="produto.variantes" />
+          </div>
+        </article>
+      </div>
+
+      <div
+        id="produtos-table-wrapper"
+        class="hidden overflow-x-auto rounded-luxe border border-wine-100 bg-white shadow-soft md:block"
+      >
       <table id="produtos-table" class="w-full text-left font-sans text-sm">
         <thead class="border-b border-wine-100 bg-wine-50 text-xs uppercase tracking-wider text-wine-600">
           <tr>
@@ -109,30 +190,13 @@
             class="border-b border-wine-100 last:border-0"
           >
             <td :colspan="5" class="bg-wine-50/50 px-6 py-4">
-              <div v-if="produto.variantes.length > 0" class="flex flex-wrap gap-3">
-                <div
-                  v-for="variante in produto.variantes"
-                  :key="variante.id"
-                  class="flex flex-col gap-1 rounded-luxe border border-wine-100 bg-white px-4 py-3"
-                >
-                  <div class="flex items-center gap-3">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-full border border-wine-200 font-sans text-sm font-medium text-brand">
-                      {{ variante.tamanho }}
-                    </span>
-                  </div>
-                  <span class="font-sans text-xs text-wine-600">
-                    {{ variante.cor ?? 'Sem cor' }} · Qtd: {{ variante.quantidade }}
-                  </span>
-                </div>
-              </div>
-              <p v-else class="font-sans text-sm text-wine-500">
-                Nenhuma variação cadastrada.
-              </p>
+              <ProdutoVariantes :variantes="produto.variantes" />
             </td>
           </tr>
           </template>
         </tbody>
       </table>
+      </div>
     </div>
 
     <ModalProduto
@@ -156,8 +220,10 @@ import {
   TrashIcon
 } from '@heroicons/vue/24/outline'
 import { toast } from 'vue-sonner'
+import AdminHeader from '~/components/AdminHeader.vue'
 import ModalProduto from '~/components/ModalProduto.vue'
 import type { ProdutoFormPayload, ProdutoVarianteInicial } from '~/components/ModalProduto.vue'
+import ProdutoVariantes from '~/components/ProdutoVariantes.vue'
 import { useBuscaProdutos } from '~/composables/useBuscaProdutos'
 import { useSalvarProduto } from '~/composables/useSalvarProduto'
 import type { AdminProdutoDetalhe, AdminProdutoLista } from '~/types/produto-admin'
@@ -219,6 +285,14 @@ const loading = pending
 const error = computed(() => queryError.value?.message ?? null)
 
 const { filtrados } = useBuscaProdutos<ProdutoRow>(produtos, busca)
+
+function resumoVariantes(produto: ProdutoRow): string {
+  const total = produto.variantes.length
+  if (total === 0) {
+    return 'Nenhuma variação'
+  }
+  return `${total} variação${total === 1 ? '' : 'ões'}`
+}
 
 function toggleExpandir(id: number) {
   const proximo = new Set(expandidos.value)
