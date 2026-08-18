@@ -157,6 +157,7 @@
         variant="primary"
         size="md"
         full-width
+        :loading="salvando"
         @click="handleProximoOuSalvar"
       />
     </template>
@@ -211,6 +212,7 @@ interface Props {
   aberto: boolean
   isEdicao?: boolean
   id?: number | null
+  salvando?: boolean
   produtoInicial?: {
     nome: string
     descricao: string | null
@@ -223,6 +225,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   isEdicao: false,
   id: null,
+  salvando: false,
   produtoInicial: null
 })
 
@@ -305,6 +308,10 @@ watch(
 )
 
 function handleProximoOuSalvar() {
+  if (props.salvando) {
+    return
+  }
+
   if (passo.value === 1) {
     passo.value = 2
     return

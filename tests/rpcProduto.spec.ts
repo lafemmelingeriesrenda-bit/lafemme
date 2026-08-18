@@ -49,6 +49,20 @@ describe('mapearRespostaRpcProduto', () => {
     })
   })
 
+  it('mapeia erro PRODUTO_EM_PEDIDO', () => {
+    expect(
+      mapearRespostaRpcProduto({
+        ok: false,
+        codigo: 'PRODUTO_EM_PEDIDO',
+        erro: 'Este produto não pode ser excluído porque já está vinculado a um pedido.'
+      })
+    ).toEqual({
+      ok: false,
+      codigo: 'PRODUTO_EM_PEDIDO',
+      erro: 'Este produto não pode ser excluído porque já está vinculado a um pedido.'
+    })
+  })
+
   it('usa mensagem padrão quando erro ausente', () => {
     expect(mapearRespostaRpcProduto({ ok: false, codigo: 'PAYLOAD_INVALIDO' })).toEqual({
       ok: false,

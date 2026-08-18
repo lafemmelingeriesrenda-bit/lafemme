@@ -6,7 +6,7 @@ export interface VarianteRpcResultado {
 export type RespostaRpcProduto =
   | { ok: true; tipo: 'criado_ou_atualizado'; id: number; variantes: VarianteRpcResultado[] }
   | { ok: true; tipo: 'excluido'; fotos: string[] }
-  | { ok: false; codigo: 'PAYLOAD_INVALIDO' | 'NAO_ENCONTRADO'; erro: string }
+  | { ok: false; codigo: 'PAYLOAD_INVALIDO' | 'NAO_ENCONTRADO' | 'PRODUTO_EM_PEDIDO'; erro: string }
 
 export function mapearRespostaRpcProduto(bruto: unknown): RespostaRpcProduto | null {
   if (typeof bruto !== 'object' || bruto === null || Array.isArray(bruto)) {
@@ -22,7 +22,7 @@ export function mapearRespostaRpcProduto(bruto: unknown): RespostaRpcProduto | n
   if (registro.ok === false) {
     const codigo = registro.codigo
 
-    if (codigo !== 'PAYLOAD_INVALIDO' && codigo !== 'NAO_ENCONTRADO') {
+    if (codigo !== 'PAYLOAD_INVALIDO' && codigo !== 'NAO_ENCONTRADO' && codigo !== 'PRODUTO_EM_PEDIDO') {
       return null
     }
 

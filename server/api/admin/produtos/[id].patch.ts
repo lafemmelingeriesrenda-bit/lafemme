@@ -1,5 +1,10 @@
 import { requireAdmin } from '../../../utils/requireAdmin'
-import { validarProdutoPayload } from '~/utils/produtoAdmin'
+import {
+  filtrarFotosSemOutraReferencia,
+  obterUrlsFotosDoProduto,
+  removerArquivosStorage
+} from '../../../utils/adminProdutos'
+import { calcularFotosRemover, validarProdutoPayload } from '~/utils/produtoAdmin'
 import { mapearRespostaRpcProduto } from '~/utils/mapearRpcProduto'
 import type { Json } from '~/types/database.types'
 import type { AdminProdutoCriado } from '~/types/produto-admin'
@@ -21,6 +26,17 @@ export default defineEventHandler(async (event): Promise<AdminProdutoCriado> => 
   if (!validado.ok) {
     throw createError({ statusCode: 400, statusMessage: validado.erro })
   }
+
+  // Fotos antigas são coletadas ANTES do update (a RPC substitui as
+  // referências no banco) para calcular o que pode sair do Storage.
+  const fotosAntigas = await obterUrlsFotosDoProduto(admin, id)
+
+  const fotosNovas: Array<string | null | undefined> = [validado.payload.capa]
+  for (const variante of validado.payload.variantes) {
+    fotosNovas.push(...variante.imagens)
+  }
+
+  const fotosParaRemover = calcularFotosRemover(fotosAntigas, fotosNovas, supabaseUrl)
 
   const { data, error } = await admin.rpc('admin_atualizar_produto', {
     p_id: id,
@@ -50,6 +66,11 @@ export default defineEventHandler(async (event): Promise<AdminProdutoCriado> => 
     console.error('[admin/produtos] resposta inesperada da RPC:', JSON.stringify(data))
     throw createError({ statusCode: 500, statusMessage: 'Erro interno do servidor.' })
   }
+
+  // Após a confirmação do update, remove apenas as fotos que saíram do
+  // payload E não pertencem (nem são compartilhadas) com outro produto.
+  const fotosSeguras = await filtrarFotosSemOutraReferencia(admin, id, fotosParaRemover, supabaseUrl)
+  await removerArquivosStorage(admin, fotosSeguras, supabaseUrl)
 
   return { id: resposta.id, variantes: resposta.variantes }
 })

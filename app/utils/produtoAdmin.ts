@@ -227,6 +227,52 @@ export function storagePathDaUrl(url: string, supabaseUrl: string): string | nul
   return parsearUrlStorage(url, supabaseUrl)
 }
 
+/**
+ * Calcula quais fotos antigas podem ser removidas do Storage após um
+ * PATCH: fotos antigas cujo caminho NÃO esteja presente nas fotos
+ * novas (payload validado). Devolve as URLs antigas correspondentes,
+ * deduplicadas por caminho.
+ *
+ * Regras garantidas:
+ *   - foto antiga ainda presente no payload -> NÃO entra no retorno;
+ *   - foto nova (não existia antes) -> nunca é considerada;
+ *   - URLs fora do bucket -> ignoradas;
+ *   - o cálculo é por caminho de Storage, não pela string bruta da URL.
+ */
+export function calcularFotosRemover(
+  fotosAntigas: Array<string | null | undefined>,
+  fotosNovas: Array<string | null | undefined>,
+  supabaseUrl: string
+): string[] {
+  const caminhosNovos = new Set<string>()
+
+  for (const url of fotosNovas) {
+    const caminho = storagePathDaUrl(url ?? '', supabaseUrl)
+    if (caminho !== null) {
+      caminhosNovos.add(caminho)
+    }
+  }
+
+  const aRemover: string[] = []
+  const caminhosVistos = new Set<string>()
+
+  for (const url of fotosAntigas) {
+    if (typeof url !== 'string' || url.length === 0) {
+      continue
+    }
+
+    const caminho = storagePathDaUrl(url, supabaseUrl)
+    if (caminho === null || caminhosNovos.has(caminho) || caminhosVistos.has(caminho)) {
+      continue
+    }
+
+    caminhosVistos.add(caminho)
+    aRemover.push(url)
+  }
+
+  return aRemover
+}
+
 export function urlPublicaBucket(supabaseUrl: string, caminho: string): string {
   const base = supabaseUrl.replace(/\/+$/, '')
   return `${base}/storage/v1/object/public/${BUCKET_LA_FEMME_ENCODED}/${caminho}`

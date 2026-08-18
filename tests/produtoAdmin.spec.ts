@@ -8,7 +8,8 @@ import {
   validarProdutoPayload,
   urlPertenceAoBucket,
   storagePathDaUrl,
-  urlPublicaBucket
+  urlPublicaBucket,
+  calcularFotosRemover
 } from '../app/utils/produtoAdmin'
 import { slugBase, slugComSufixo, slugificarProduto } from '../app/utils/slugProduto'
 
@@ -481,6 +482,64 @@ describe('validação de produto', () => {
   it('rejeita capa fora do bucket', () => {
     const r = validarProdutoPayload({ ...payloadValido, capa: 'https://evil.com/x.jpg' }, SUPABASE_URL)
     expect(r.ok).toBe(false)
+  })
+})
+
+describe('calcularFotosRemover (limpeza de Storage no PATCH)', () => {
+  const base = SUPABASE_URL
+
+  function urlPublica(caminho: string): string {
+    return urlPublicaBucket(base, caminho)
+  }
+
+  it('remove imagem antiga retirada do payload', () => {
+    const fotosAntigas = [urlPublica('produtos/antiga.jpg'), urlPublica('produtos/mantida.jpg')]
+    const fotosNovas = [urlPublica('produtos/mantida.jpg')]
+
+    expect(calcularFotosRemover(fotosAntigas, fotosNovas, base)).toEqual([urlPublica('produtos/antiga.jpg')])
+  })
+
+  it('preserva imagem antiga mantida no payload', () => {
+    const fotosAntigas = [urlPublica('produtos/mantida.jpg')]
+    const fotosNovas = [urlPublica('produtos/mantida.jpg')]
+
+    expect(calcularFotosRemover(fotosAntigas, fotosNovas, base)).toEqual([])
+  })
+
+  it('preserva nova imagem (não existia antes)', () => {
+    const fotosAntigas: string[] = []
+    const fotosNovas = [urlPublica('produtos/nova.jpg')]
+
+    expect(calcularFotosRemover(fotosAntigas, fotosNovas, base)).toEqual([])
+  })
+
+  it('nunca remove imagem de outro produto (fora do escopo de fotos antigas)', () => {
+    const fotosAntigas = [urlPublica('produtos/deste-produto.jpg')]
+    const fotosNovas: string[] = []
+
+    const resultado = calcularFotosRemover(fotosAntigas, fotosNovas, base)
+
+    expect(resultado).toEqual([urlPublica('produtos/deste-produto.jpg')])
+    expect(resultado).not.toContain(urlPublica('produtos/outro-produto.jpg'))
+  })
+
+  it('ignora URLs fora do bucket', () => {
+    const fotosAntigas = ['https://evil.com/x.jpg', urlPublica('produtos/valida.jpg')]
+    const fotosNovas: string[] = []
+
+    expect(calcularFotosRemover(fotosAntigas, fotosNovas, base)).toEqual([urlPublica('produtos/valida.jpg')])
+  })
+
+  it('compara por caminho de Storage, não pela string da URL', () => {
+    const comEspaco = `${base}/storage/v1/object/public/La Femme/produtos/foto.jpg`
+
+    expect(calcularFotosRemover([comEspaco], [urlPublica('produtos/foto.jpg')], base)).toEqual([])
+  })
+
+  it('deduplica caminhos repetidos', () => {
+    const url = urlPublica('produtos/repetida.jpg')
+
+    expect(calcularFotosRemover([url, url], [], base)).toEqual([url])
   })
 })
 

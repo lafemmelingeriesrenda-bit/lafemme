@@ -31,6 +31,9 @@ export default defineEventHandler(async (event) => {
     if (resposta.codigo === 'NAO_ENCONTRADO') {
       throw createError({ statusCode: 404, statusMessage: 'Produto não encontrado.' })
     }
+    if (resposta.codigo === 'PRODUTO_EM_PEDIDO') {
+      throw createError({ statusCode: 409, statusMessage: resposta.erro })
+    }
     throw createError({ statusCode: 400, statusMessage: resposta.erro })
   }
 

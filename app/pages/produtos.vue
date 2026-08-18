@@ -101,6 +101,7 @@
                 type="button"
                 class="rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50"
                 title="Deletar"
+                @click="solicitarExclusao(produto)"
               >
                 <TrashIcon class="h-5 w-5" />
               </button>
@@ -179,6 +180,7 @@
                   type="button"
                   class="rounded-luxe p-2 text-wine-700 transition hover:bg-wine-50"
                   title="Deletar"
+                  @click="solicitarExclusao(produto)"
                 >
                   <TrashIcon class="h-5 w-5" />
                 </button>
@@ -204,9 +206,42 @@
       :is-edicao="modalEdicao"
       :id="modalId"
       :produto-inicial="modalInicial"
+      :salvando="salvando"
       @fechar="modalAberto = false"
       @salvo="handleSalvo"
     />
+
+    <BaseModal
+      :aberto="produtoParaExcluir !== null"
+      titulo="Excluir produto"
+      @fechar="cancelarExclusao"
+    >
+      <p class="font-sans text-sm text-wine-700">
+        Tem certeza que deseja excluir o produto
+        <strong class="font-medium text-brand">{{ produtoParaExcluir?.nome }}</strong>?
+        Esta ação não pode ser desfeita.
+      </p>
+      <template #footer>
+        <BaseButton
+          id="produtos-exclusao-cancelar"
+          label="Cancelar"
+          variant="outline"
+          size="md"
+          full-width
+          :disabled="excluindo"
+          @click="cancelarExclusao"
+        />
+        <BaseButton
+          id="produtos-exclusao-confirmar"
+          label="Excluir"
+          variant="primary"
+          size="md"
+          full-width
+          :loading="excluindo"
+          @click="confirmarExclusao"
+        />
+      </template>
+    </BaseModal>
   </main>
 </template>
 
@@ -221,6 +256,8 @@ import {
 } from '@heroicons/vue/24/outline'
 import { toast } from 'vue-sonner'
 import AdminHeader from '~/components/AdminHeader.vue'
+import BaseButton from '~/components/BaseButton.vue'
+import BaseModal from '~/components/BaseModal.vue'
 import ModalProduto from '~/components/ModalProduto.vue'
 import type { ProdutoFormPayload, ProdutoVarianteInicial } from '~/components/ModalProduto.vue'
 import ProdutoVariantes from '~/components/ProdutoVariantes.vue'
@@ -261,6 +298,9 @@ const modalAberto = ref(false)
 const modalEdicao = ref(false)
 const modalId = ref<number | null>(null)
 const modalInicial = ref<ProdutoInicialModal | null>(null)
+const salvando = ref(false)
+const produtoParaExcluir = ref<ProdutoRow | null>(null)
+const excluindo = ref(false)
 
 const { data: produtos, pending, error: queryError, refresh } = useAsyncData('produtos_admin', async () => {
   const lista = await $fetch<AdminProdutoLista[]>('/api/admin/produtos')
@@ -338,7 +378,50 @@ async function handleEditar(produto: ProdutoRow) {
   }
 }
 
+function solicitarExclusao(produto: ProdutoRow) {
+  if (excluindo.value) {
+    return
+  }
+  produtoParaExcluir.value = produto
+}
+
+function cancelarExclusao() {
+  if (excluindo.value) {
+    return
+  }
+  produtoParaExcluir.value = null
+}
+
+async function confirmarExclusao() {
+  const produto = produtoParaExcluir.value
+
+  if (!produto || excluindo.value) {
+    return
+  }
+
+  excluindo.value = true
+
+  try {
+    await $fetch(`/api/admin/produtos/${produto.id}`, { method: 'DELETE' })
+    toast.success('Produto excluído com sucesso.')
+    produtoParaExcluir.value = null
+    await refresh()
+  } catch (err) {
+    const mensagem = err instanceof Error ? err.message : 'Erro ao excluir o produto.'
+    toast.error(mensagem)
+    produtoParaExcluir.value = null
+  } finally {
+    excluindo.value = false
+  }
+}
+
 async function handleSalvo(payload: ProdutoFormPayload) {
+  if (salvando.value) {
+    return
+  }
+
+  salvando.value = true
+
   try {
     const { salvar, atualizar } = useSalvarProduto()
 
@@ -370,6 +453,8 @@ async function handleSalvo(payload: ProdutoFormPayload) {
   } catch (err) {
     const mensagem = err instanceof Error ? err.message : 'Erro ao salvar o produto.'
     toast.error(mensagem)
+  } finally {
+    salvando.value = false
   }
 }
 
