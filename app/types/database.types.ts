@@ -336,6 +336,13 @@ export interface Database {
         }
         Returns: Json
       }
+      admin_atualizar_status_pedido: {
+        Args: {
+          p_id: number
+          p_status: string
+        }
+        Returns: Json
+      }
       admin_criar_produto: {
         Args: {
           p_dados: Json
@@ -343,6 +350,24 @@ export interface Database {
         Returns: Json
       }
       admin_excluir_produto: {
+        Args: {
+          p_id: number
+        }
+        Returns: Json
+      }
+      admin_finalizar_pedido: {
+        Args: {
+          p_id: number
+        }
+        Returns: Json
+      }
+      admin_listar_pedidos: {
+        Args: {
+          p_filtros?: Json | null
+        }
+        Returns: Json
+      }
+      admin_obter_pedido: {
         Args: {
           p_id: number
         }

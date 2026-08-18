@@ -54,6 +54,7 @@
               variant="primary"
               size="md"
               full-width
+              :loading="confirmarCarregando"
               @click="emit('confirmar')"
             />
           </slot>
@@ -72,11 +73,13 @@ interface Props {
   titulo: string
   textoConfirmar?: string
   textoCancelar?: string
+  confirmarCarregando?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   textoConfirmar: 'Salvar',
-  textoCancelar: 'Cancelar'
+  textoCancelar: 'Cancelar',
+  confirmarCarregando: false
 })
 
 const emit = defineEmits<{

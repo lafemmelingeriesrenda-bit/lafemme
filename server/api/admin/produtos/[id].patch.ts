@@ -1,4 +1,5 @@
 import { requireAdmin } from '../../../utils/requireAdmin'
+import { produtoEmPedido } from '../../../utils/produtoEmPedido'
 import {
   filtrarFotosSemOutraReferencia,
   obterUrlsFotosDoProduto,
@@ -25,6 +26,25 @@ export default defineEventHandler(async (event): Promise<AdminProdutoCriado> => 
 
   if (!validado.ok) {
     throw createError({ statusCode: 400, statusMessage: validado.erro })
+  }
+
+  // Produtos com histórico em itens_pedido não podem ter suas variantes
+  // recriadas (a RPC também protege, mas isto evita a tentativa e
+  // devolve 409 imediatamente).
+  let emPedido = false
+
+  try {
+    emPedido = await produtoEmPedido(admin, id)
+  } catch (erro) {
+    console.error('[admin/produtos] erro ao verificar produto em pedido:', (erro as Error).message)
+    throw createError({ statusCode: 500, statusMessage: 'Erro interno do servidor.' })
+  }
+
+  if (emPedido) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Este produto não pode ser alterado porque já está vinculado a um pedido.'
+    })
   }
 
   // Fotos antigas são coletadas ANTES do update (a RPC substitui as
