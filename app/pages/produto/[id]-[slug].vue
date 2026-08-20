@@ -187,7 +187,7 @@
             variant="primary"
             size="lg"
             class="w-full md:w-auto"
-            :disabled="!tamanhoAtivo || indisponivel"
+            :disabled="!tamanhoAtivo || !tamanhoAtivo.disponivel"
             @click="adicionarAoSacola"
           />
         </div>
@@ -233,19 +233,16 @@ const slugOficial = computed<string | null>(() => produto.value?.slug ?? null)
 const corAtiva = computed<CorProdutoPublico | null>(() => corSelecionada.value ?? produto.value?.cores[0] ?? null)
 
 const tamanhoAtivo = computed<VarianteProdutoPublico | null>(() => {
-  if (tamanhoSelecionado.value) {
+  const cor = corAtiva.value
+
+  if (tamanhoSelecionado.value && cor?.variantes.some((v) => v.id === tamanhoSelecionado.value?.id)) {
     return tamanhoSelecionado.value
   }
 
-  const cor = corAtiva.value
   return cor?.variantes.find((v) => v.disponivel) ?? cor?.variantes[0] ?? null
 })
 
-const algumaDisponivel = computed<boolean>(() =>
-  Boolean(produto.value?.cores.some((c) => c.variantes.some((v) => v.disponivel)))
-)
-
-const indisponivel = computed<boolean>(() => Boolean(produto.value && !algumaDisponivel.value))
+const indisponivel = computed<boolean>(() => Boolean(produto.value && !tamanhoAtivo.value?.disponivel))
 
 const podeAumentar = computed<boolean>(() =>
   Boolean(tamanhoAtivo.value && quantidade.value < tamanhoAtivo.value.quantidade)
@@ -337,7 +334,7 @@ function carregarFotosComplementares(produtoPublico: ProdutoPublico): void {
 
 function selecionarCor(cor: CorProdutoPublico): void {
   corSelecionada.value = cor
-  tamanhoSelecionado.value = cor.variantes.find((v) => v.disponivel) ?? cor.variantes[0] ?? null
+  tamanhoSelecionado.value = cor.variantes.find((v) => v.disponivel) ?? null
   quantidade.value = 1
   fotoAtiva.value = 0
 }
@@ -354,7 +351,7 @@ function adicionarAoSacola(): void {
   const variante = tamanhoAtivo.value
   const cor = corAtiva.value
 
-  if (!produtoAtual || !variante || !cor) {
+  if (!produtoAtual || !variante || !cor || !variante.disponivel) {
     return
   }
 

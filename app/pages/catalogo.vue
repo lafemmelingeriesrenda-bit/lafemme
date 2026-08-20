@@ -12,7 +12,7 @@
       <div v-else class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
         <ProductCard
           v-for="produto in produtos"
-          :key="produto.produtoId"
+          :key="`${produto.produtoId}|${produto.cor ?? ''}|${produto.foto ?? ''}`"
           :produto="produto"
           :src="produto.foto ?? ''"
           :name="produto.nome"
@@ -37,7 +37,7 @@ function handleAddToCart(varianteId: number) {
   const produto = produtos.value?.find((p) => p.variantes.some((v) => v.id === varianteId))
   const variante = produto?.variantes.find((v) => v.id === varianteId)
 
-  if (!produto || !variante) {
+  if (!produto || !variante || !variante.disponivel) {
     return
   }
 

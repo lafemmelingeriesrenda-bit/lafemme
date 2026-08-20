@@ -39,11 +39,13 @@
           :key="variante.id"
           type="button"
           class="flex h-8 w-8 items-center justify-center rounded-full border font-sans text-sm font-medium transition"
-          :class="
+          :class="[
             selected?.id === variante.id
               ? 'border-brand bg-brand text-cream'
-              : 'border-wine-200 text-wine-700 hover:border-brand hover:text-brand'
-          "
+              : 'border-wine-200 text-wine-700 hover:border-brand hover:text-brand',
+            !variante.disponivel && 'cursor-not-allowed opacity-40 hover:border-wine-200 hover:text-wine-700'
+          ]"
+          :disabled="!variante.disponivel"
           @click="select(variante)"
         >
           {{ variante.tamanho }}
@@ -56,7 +58,7 @@
         variant="primary"
         size="sm"
         class="mt-4 w-full"
-        :disabled="!selected"
+        :disabled="!selected || !selected.disponivel"
         @click="handleAddToCart"
       />
 
@@ -75,7 +77,7 @@
 <script setup lang="ts">
 import { ArrowRightIcon } from '@heroicons/vue/24/outline'
 import BaseButton from '~/components/BaseButton.vue'
-import type { ProdutoCard } from '~/composables/useProdutos'
+import type { ProdutoCard } from '~/utils/agruparProdutos'
 import { slugificarProduto, urlProduto } from '~/utils/slugProduto'
 
 interface Variante {
@@ -83,6 +85,7 @@ interface Variante {
   tamanho: string
   valor: number
   quantidade: number
+  disponivel: boolean
 }
 
 interface Props {
@@ -100,7 +103,18 @@ const emit = defineEmits<{
   'add-to-cart': [varianteId: number]
 }>()
 
-const selected = ref<Variante | null>(props.variantes[0] ?? null)
+const selected = ref<Variante | null>(props.variantes.find((variante) => variante.disponivel) ?? null)
+
+watch(
+  () => props.variantes,
+  (variantes) => {
+    const atual = selected.value ? variantes.find((variante) => variante.id === selected.value?.id) : null
+    selected.value = atual?.disponivel
+      ? atual
+      : variantes.find((variante) => variante.disponivel) ?? null
+  },
+  { deep: true }
+)
 
 const destino = computed<string>(() => {
   if (props.produto.slug) {
@@ -111,11 +125,13 @@ const destino = computed<string>(() => {
 })
 
 function select(variante: Variante) {
-  selected.value = variante
+  if (variante.disponivel) {
+    selected.value = variante
+  }
 }
 
 function handleAddToCart() {
-  if (selected.value) {
+  if (selected.value?.disponivel === true) {
     emit('add-to-cart', selected.value.id)
   }
 }
