@@ -79,7 +79,11 @@ export default defineEventHandler(async (event): Promise<AdminProdutoCriado> => 
     if (resposta.codigo === 'NAO_ENCONTRADO') {
       throw createError({ statusCode: 404, statusMessage: 'Produto não encontrado.' })
     }
-    throw createError({ statusCode: 400, statusMessage: resposta.erro })
+    const statusCode =
+      resposta.codigo === 'VARIANTE_HISTORICA_IMUTAVEL' || resposta.codigo === 'VARIANTE_FORA_DO_PRODUTO'
+        ? 409
+        : 400
+    throw createError({ statusCode, statusMessage: resposta.erro })
   }
 
   if (resposta.tipo !== 'criado_ou_atualizado') {

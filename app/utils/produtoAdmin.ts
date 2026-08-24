@@ -1,6 +1,8 @@
 export const BUCKET_LA_FEMME = 'La Femme'
 export const BUCKET_LA_FEMME_ENCODED = 'La%20Femme'
 export const TAMANHO_MAXIMO_UPLOAD = 2 * 1024 * 1024
+export const TAMANHOS_PRODUTO = ['P', 'M', 'G', 'GG', 'Tamanho Único'] as const
+export type TamanhoProduto = (typeof TAMANHOS_PRODUTO)[number]
 
 export const EXTENSAO_POR_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -279,6 +281,7 @@ export function urlPublicaBucket(supabaseUrl: string, caminho: string): string {
 }
 
 export interface VariantePayloadValidada {
+  id: number | null
   cor: string | null
   tamanho: string
   valor: number
@@ -294,6 +297,42 @@ export interface ProdutoPayloadValidado {
   categoria: string | null
   capa: string | null
   variantes: VariantePayloadValidada[]
+}
+
+export interface VarianteParaCombinacao {
+  cor: string | null
+  tamanho: string
+}
+
+function chaveCor(cor: string | null): string {
+  return (cor ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+}
+
+export function validarCombinacoesVariantes(variantes: VarianteParaCombinacao[]): string | null {
+  const porCor = new Map<string, Set<string>>()
+  const tamanhoUnico = 'Tamanho Único'
+
+  for (const variante of variantes) {
+    const cor = chaveCor(variante.cor)
+    const tamanhos = porCor.get(cor) ?? new Set<string>()
+
+    if (tamanhos.has(variante.tamanho)) {
+      return `Tamanho "${variante.tamanho}" repetido na mesma cor.`
+    }
+
+    if (variante.tamanho === tamanhoUnico && tamanhos.size > 0) {
+      return `A cor "${variante.cor ?? 'sem cor'}" não pode combinar Tamanho Único com tamanhos regulares.`
+    }
+
+    if (variante.tamanho !== tamanhoUnico && tamanhos.has(tamanhoUnico)) {
+      return `A cor "${variante.cor ?? 'sem cor'}" não pode combinar Tamanho Único com tamanhos regulares.`
+    }
+
+    tamanhos.add(variante.tamanho)
+    porCor.set(cor, tamanhos)
+  }
+
+  return null
 }
 
 export type ResultadoValidacaoProduto =
@@ -366,8 +405,7 @@ export function validarProdutoPayload(bruto: unknown, supabaseUrl: string): Resu
   }
 
   const variantes: VariantePayloadValidada[] = []
-  const tamanhosVistos = new Set<string>()
-
+  const idsVistos = new Set<number>()
   for (const item of registro.variantes) {
     if (typeof item !== 'object' || item === null || Array.isArray(item)) {
       return { ok: false, erro: 'Cada variante deve ser um objeto.' }
@@ -375,15 +413,27 @@ export function validarProdutoPayload(bruto: unknown, supabaseUrl: string): Resu
 
     const variante = item as Record<string, unknown>
 
+    if (!Object.prototype.hasOwnProperty.call(variante, 'id')) {
+      return { ok: false, erro: 'ID da variante é obrigatório.' }
+    }
+
+    const idBruto = variante.id
+    let id: number | null = null
+    if (idBruto !== undefined && idBruto !== null) {
+      if (typeof idBruto !== 'number' || !Number.isInteger(idBruto) || idBruto <= 0) {
+        return { ok: false, erro: 'ID da variante inválido.' }
+      }
+      if (idsVistos.has(idBruto)) {
+        return { ok: false, erro: 'O mesmo ID de variante foi enviado mais de uma vez.' }
+      }
+      idsVistos.add(idBruto)
+      id = idBruto
+    }
+
     const tamanho = normalizarTextoObrigatorio(variante.tamanho, 20)
     if (!tamanho) {
       return { ok: false, erro: 'Tamanho é obrigatório em cada variante.' }
     }
-
-    if (tamanhosVistos.has(tamanho)) {
-      return { ok: false, erro: `Tamanho "${tamanho}" repetido nas variantes.` }
-    }
-    tamanhosVistos.add(tamanho)
 
     const cor = opcional(variante.cor, 60, true)
     if (!cor.ok) {
@@ -405,7 +455,13 @@ export function validarProdutoPayload(bruto: unknown, supabaseUrl: string): Resu
       return { ok: false, erro: 'SKU deve ter no máximo 40 caracteres.' }
     }
 
-    const ativo = variante.ativo === undefined ? true : variante.ativo === true
+    if (!Object.prototype.hasOwnProperty.call(variante, 'ativo')) {
+      return { ok: false, erro: 'Ativo da variante é obrigatório.' }
+    }
+    if (typeof variante.ativo !== 'boolean') {
+      return { ok: false, erro: 'Ativo deve ser um booleano.' }
+    }
+    const ativo = variante.ativo
 
     if (!Array.isArray(variante.imagens)) {
       return { ok: false, erro: 'Imagens da variante deve ser uma lista de URLs.' }
@@ -420,7 +476,12 @@ export function validarProdutoPayload(bruto: unknown, supabaseUrl: string): Resu
       imagens.push(urlPublicaBucket(supabaseUrl, caminho))
     }
 
-    variantes.push({ cor: cor.valor, tamanho, valor, quantidade, sku: sku.valor, ativo, imagens })
+    variantes.push({ id, cor: cor.valor, tamanho, valor, quantidade, sku: sku.valor, ativo, imagens })
+  }
+
+  const erroCombinacoes = validarCombinacoesVariantes(variantes)
+  if (erroCombinacoes) {
+    return { ok: false, erro: erroCombinacoes }
   }
 
   return {

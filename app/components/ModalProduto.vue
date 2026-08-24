@@ -48,7 +48,7 @@
         <div class="flex flex-col gap-4">
           <div
             v-for="(variante, vi) in form.variantes"
-            :key="variante.id"
+            :key="variante.uiId"
             class="flex flex-col gap-3 rounded-luxe border border-wine-100 bg-wine-50/50 p-4"
           >
             <div class="flex items-center justify-between">
@@ -83,6 +83,18 @@
 
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <BaseInput
+                v-model="variante.sku"
+                label="SKU"
+                placeholder="SKU da variante"
+              />
+              <label class="flex items-center gap-2 self-end pb-2 font-sans text-sm text-wine-800">
+                <input v-model="variante.ativo" type="checkbox" class="h-4 w-4 accent-brand" />
+                Variante ativa
+              </label>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <BaseInput
                 v-model="variante.quantidade"
                 label="Quantidade"
                 type="number"
@@ -105,6 +117,7 @@
                       ? 'border-brand bg-brand text-cream'
                       : 'border-wine-200 text-wine-700 hover:border-brand hover:text-brand'
                   "
+                  :disabled="tamanhoBloqueado(vi, t)"
                   @click="variante.tamanho = t"
                 >
                   {{ t }}
@@ -172,21 +185,27 @@ import BaseInput from '~/components/BaseInput.vue'
 import BaseModal from '~/components/BaseModal.vue'
 import BaseUpload from '~/components/BaseUpload.vue'
 import type { ItemImagem } from '~/composables/useSalvarProduto'
+import { TAMANHOS_PRODUTO, validarCombinacoesVariantes } from '~/utils/produtoAdmin'
 
 export interface VarianteForm {
-  id: number
+  uiId: string
+  id: number | null
   cor: string
   valor: string
   quantidade: string
+  sku: string
+  ativo: boolean
   tamanho: string
   imagens: ItemImagem[]
 }
 
 export interface VarianteFormPayload {
-  id: number
+  id: number | null
   cor: string
   valor: number
   quantidade: number
+  sku: string
+  ativo: boolean
   tamanho: string
   imagens: ItemImagem[]
 }
@@ -201,10 +220,13 @@ export interface ProdutoFormPayload {
 }
 
 export interface ProdutoVarianteInicial {
+  id: number
   cor: string | null
   tamanho: string | null
   valor: number | null
   quantidade: number | null
+  sku: string | null
+  ativo: boolean
   imagens: { url: string }[]
 }
 
@@ -234,9 +256,8 @@ const emit = defineEmits<{
   salvo: [payload: ProdutoFormPayload]
 }>()
 
-const tamanhos = ['P', 'M', 'G']
+const tamanhos = TAMANHOS_PRODUTO
 const passo = ref(1)
-let proximoIdVariante = 1
 
 const form = reactive<{
   nome: string
@@ -254,10 +275,13 @@ const form = reactive<{
 
 function criarVariante(): VarianteForm {
   return {
-    id: proximoIdVariante++,
+    uiId: crypto.randomUUID(),
+    id: null,
     cor: '',
     valor: '0',
     quantidade: '0',
+    sku: '',
+    ativo: true,
     tamanho: '',
     imagens: []
   }
@@ -273,6 +297,30 @@ function adicionarVariante() {
 
 function removerVariante(index: number) {
   form.variantes.splice(index, 1)
+}
+
+function tamanhoBloqueado(varianteIndex: number, tamanho: string): boolean {
+  const variante = form.variantes[varianteIndex]
+  if (!variante) {
+    return false
+  }
+
+  const cor = variante.cor.replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+
+  return form.variantes.some((outra, index) => {
+    if (index === varianteIndex) {
+      return false
+    }
+
+    const outraCor = outra.cor.replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+    if (outraCor !== cor) {
+      return false
+    }
+
+    return outra.tamanho === tamanho ||
+      (tamanho === 'Tamanho Único' && outra.tamanho !== 'Tamanho Único') ||
+      (tamanho !== 'Tamanho Único' && outra.tamanho === 'Tamanho Único')
+  })
 }
 
 watch(
@@ -298,6 +346,8 @@ watch(
         variante.tamanho = v.tamanho ?? ''
         variante.valor = v.valor === null ? '0' : String(v.valor)
         variante.quantidade = v.quantidade === null ? '0' : String(v.quantidade)
+        variante.sku = v.sku ?? ''
+        variante.ativo = v.ativo
         variante.imagens = v.imagens.map((img) => itemImagemUrl(img.url))
         return variante
       })
@@ -322,6 +372,12 @@ function handleProximoOuSalvar() {
     return
   }
 
+  const erroCombinacoes = validarCombinacoesVariantes(form.variantes)
+  if (erroCombinacoes) {
+    toast.error(erroCombinacoes)
+    return
+  }
+
   emit('salvo', {
     id: props.isEdicao ? props.id : null,
     nome: form.nome.trim(),
@@ -333,6 +389,8 @@ function handleProximoOuSalvar() {
       cor: v.cor.trim(),
       valor: Number(v.valor),
       quantidade: Number(v.quantidade),
+      sku: v.sku.trim(),
+      ativo: v.ativo,
       tamanho: v.tamanho,
       imagens: v.imagens
     }))

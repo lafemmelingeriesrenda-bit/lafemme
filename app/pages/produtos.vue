@@ -364,10 +364,13 @@ async function handleEditar(produto: ProdutoRow) {
       categoria: detalhe.categoria,
       capa: detalhe.capa ? { url: detalhe.capa } : null,
       variantes: detalhe.variantes.map((v) => ({
+        id: v.id,
         cor: v.cor,
         tamanho: v.tamanho,
         valor: v.valor,
         quantidade: v.quantidade,
+        sku: v.sku,
+        ativo: v.ativo,
         imagens: v.fotos.map((url) => ({ url }))
       }))
     }
@@ -431,11 +434,13 @@ async function handleSalvo(payload: ProdutoFormPayload) {
       categoria: payload.categoria,
       capa: payload.capa[0] ?? null,
       variantes: payload.variantes.map((v) => ({
+        id: v.id,
         cor: v.cor || null,
         tamanho: v.tamanho,
         valor: v.valor,
         quantidade: v.quantidade,
-        sku: null,
+        sku: v.sku || null,
+        ativo: v.ativo,
         imagens: v.imagens
       }))
     }

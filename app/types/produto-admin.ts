@@ -23,6 +23,7 @@ export interface AdminVarianteDetalhe {
   valor: number
   quantidade: number
   sku: string | null
+  ativo: boolean
   fotos: string[]
 }
 
@@ -37,6 +38,7 @@ export interface AdminProdutoDetalhe {
 }
 
 export interface AdminVariantePayload {
+  id?: number | null
   cor?: string | null
   tamanho: string
   valor: number

@@ -26,11 +26,13 @@ const payloadValido = {
   capa: urlBucket('produtos/capa.jpg'),
   variantes: [
     {
+      id: null,
       cor: 'Preto',
       tamanho: 'P',
       valor: 89.9,
       quantidade: 10,
       sku: 'SKU-1',
+      ativo: true,
       imagens: [urlBucket('produtos/foto1.jpg')]
     }
   ]
@@ -243,7 +245,7 @@ describe('URLs de Storage — validação endurecida', () => {
     const r = validarProdutoPayload(
       {
         ...payloadValido,
-        variantes: [{ tamanho: 'P', valor: 10, quantidade: 1, imagens: [urlPublica('IMG_1.JPG')] }]
+        variantes: [{ id: null, tamanho: 'P', valor: 10, quantidade: 1, ativo: true, imagens: [urlPublica('IMG_1.JPG')] }]
       },
       base
     )
@@ -375,7 +377,7 @@ describe('URLs de Storage — validação endurecida', () => {
     const r = validarProdutoPayload(
       {
         ...payloadValido,
-        variantes: [{ tamanho: 'P', valor: 10, quantidade: 1, imagens: [urlPublica('produtos/../x.jpg')] }]
+        variantes: [{ id: null, tamanho: 'P', valor: 10, quantidade: 1, imagens: [urlPublica('produtos/../x.jpg')] }]
       },
       base
     )
@@ -384,6 +386,13 @@ describe('URLs de Storage — validação endurecida', () => {
 })
 
 describe('validação de produto', () => {
+  function variantesPayload(...variantes: Array<Record<string, unknown>>) {
+    return {
+      ...payloadValido,
+      variantes: variantes.map((variante) => ({ id: null, ativo: true, ...variante }))
+    }
+  }
+
   it('aceita payload válido', () => {
     const r = validarProdutoPayload(payloadValido, SUPABASE_URL)
     expect(r.ok).toBe(true)
@@ -391,6 +400,207 @@ describe('validação de produto', () => {
       expect(r.payload.nome).toBe('Camisola Insaciável')
       expect(r.payload.variantes[0]?.tamanho).toBe('P')
     }
+  })
+
+  it('aceita GG e Tamanho Único', () => {
+    expect(
+      validarProdutoPayload(
+        variantesPayload(
+          { cor: 'Branco', tamanho: 'GG', valor: 10, quantidade: 1, imagens: [] },
+          { cor: 'Preto', tamanho: 'Tamanho Único', valor: 10, quantidade: 1, imagens: [] }
+        ),
+        SUPABASE_URL
+      ).ok
+    ).toBe(true)
+  })
+
+  it('aceita P, M, G e GG na mesma cor', () => {
+    expect(
+      validarProdutoPayload(
+        variantesPayload(
+          { cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] },
+          { cor: 'Branco', tamanho: 'M', valor: 10, quantidade: 1, imagens: [] },
+          { cor: 'Branco', tamanho: 'G', valor: 10, quantidade: 1, imagens: [] },
+          { cor: 'Branco', tamanho: 'GG', valor: 10, quantidade: 1, imagens: [] }
+        ),
+        SUPABASE_URL
+      ).ok
+    ).toBe(true)
+  })
+
+  it('aceita o mesmo tamanho em cores diferentes', () => {
+    expect(
+      validarProdutoPayload(
+        variantesPayload(
+          { cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] },
+          { cor: 'Preto', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] }
+        ),
+        SUPABASE_URL
+      ).ok
+    ).toBe(true)
+  })
+
+  it('rejeita tamanho repetido na mesma cor', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload(
+        { cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] },
+        { cor: 'Branco', tamanho: 'P', valor: 12, quantidade: 2, imagens: [] }
+      ),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: expect.stringContaining('repetido') })
+  })
+
+  it('aceita Tamanho Único sozinho por cor', () => {
+    expect(
+      validarProdutoPayload(
+        variantesPayload({ cor: 'Preto', tamanho: 'Tamanho Único', valor: 10, quantidade: 1, imagens: [] }),
+        SUPABASE_URL
+      ).ok
+    ).toBe(true)
+  })
+
+  it('rejeita Tamanho Único duplicado na mesma cor', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload(
+        { cor: 'Preto', tamanho: 'Tamanho Único', valor: 10, quantidade: 1, imagens: [] },
+        { cor: 'Preto', tamanho: 'Tamanho Único', valor: 12, quantidade: 2, imagens: [] }
+      ),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: expect.stringContaining('repetido') })
+  })
+
+  it.each(['P', 'M', 'G', 'GG'])('rejeita Tamanho Único junto com %s na mesma cor', (tamanho) => {
+    const resultado = validarProdutoPayload(
+      variantesPayload(
+        { cor: 'Preto', tamanho: 'Tamanho Único', valor: 10, quantidade: 1, imagens: [] },
+        { cor: 'Preto', tamanho, valor: 12, quantidade: 2, imagens: [] }
+      ),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: expect.stringContaining('Tamanho Único') })
+  })
+
+  it('aceita Tamanho Único em uma cor e tamanhos regulares em outra', () => {
+    expect(
+      validarProdutoPayload(
+        variantesPayload(
+          { cor: 'Preto', tamanho: 'Tamanho Único', valor: 10, quantidade: 1, imagens: [] },
+          { cor: 'Branco', tamanho: 'P', valor: 12, quantidade: 2, imagens: [] },
+          { cor: 'Branco', tamanho: 'GG', valor: 12, quantidade: 2, imagens: [] }
+        ),
+        SUPABASE_URL
+      ).ok
+    ).toBe(true)
+  })
+
+  it('preserva IDs persistidos e representa variante nova com null', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload(
+        { id: 13, cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] },
+        { id: null, cor: 'Branco', tamanho: 'GG', valor: 12, quantidade: 2, imagens: [] }
+      ),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toMatchObject({
+      ok: true,
+      payload: { variantes: [{ id: 13 }, { id: null }] }
+    })
+  })
+
+  it('preserva SKU e ativo enviados explicitamente', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload({ id: 13, cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, sku: 'SKU-13', ativo: false, imagens: [] }),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toMatchObject({
+      ok: true,
+      payload: { variantes: [{ id: 13, sku: 'SKU-13', ativo: false }] }
+    })
+  })
+
+  it('aceita ativo true', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload({ cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, ativo: true, imagens: [] }),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toMatchObject({ ok: true, payload: { variantes: [{ ativo: true }] } })
+  })
+
+  it('aceita ativo false', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload({ cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, ativo: false, imagens: [] }),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toMatchObject({ ok: true, payload: { variantes: [{ ativo: false }] } })
+  })
+
+  it.each([
+    ['ausente', undefined],
+    ['null', null],
+    ['string', 'true'],
+    ['número', 1]
+  ])('rejeita ativo %s', (_descricao, ativo) => {
+    const variante: Record<string, unknown> = {
+      id: null,
+      cor: 'Branco',
+      tamanho: 'P',
+      valor: 10,
+      quantidade: 1,
+      imagens: []
+    }
+    if (ativo !== undefined) {
+      variante.ativo = ativo
+    }
+
+    const resultado = validarProdutoPayload(
+      { ...payloadValido, variantes: [variante] },
+      SUPABASE_URL
+    )
+
+    expect(resultado.ok).toBe(false)
+    expect(resultado).toEqual({ ok: false, erro: expect.any(String) })
+  })
+
+  it('rejeita variante sem a propriedade id', () => {
+    const resultado = validarProdutoPayload(
+      {
+        ...payloadValido,
+        variantes: [{ cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] }]
+      },
+      SUPABASE_URL
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'ID da variante é obrigatório.' })
+  })
+
+  it('rejeita ID de variante inválido', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload({ id: 0, cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] }),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'ID da variante inválido.' })
+  })
+
+  it('rejeita IDs de variante duplicados no payload', () => {
+    const resultado = validarProdutoPayload(
+      variantesPayload(
+        { id: 13, cor: 'Branco', tamanho: 'P', valor: 10, quantidade: 1, imagens: [] },
+        { id: 13, cor: 'Branco', tamanho: 'M', valor: 10, quantidade: 1, imagens: [] }
+      ),
+      SUPABASE_URL
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'O mesmo ID de variante foi enviado mais de uma vez.' })
   })
 
   it('rejeita nome ausente/vazio (400)', () => {
@@ -420,7 +630,7 @@ describe('validação de produto', () => {
 
   it('rejeita variante sem tamanho', () => {
     const r = validarProdutoPayload(
-      { ...payloadValido, variantes: [{ cor: 'Preto', valor: 10, quantidade: 1, imagens: [] }] },
+      { ...payloadValido, variantes: [{ id: null, cor: 'Preto', valor: 10, quantidade: 1, imagens: [] }] },
       SUPABASE_URL
     )
     expect(r.ok).toBe(false)
@@ -428,7 +638,7 @@ describe('validação de produto', () => {
 
   it('rejeita cor com mais de 60 caracteres', () => {
     const r = validarProdutoPayload(
-      { ...payloadValido, variantes: [{ cor: 'a'.repeat(61), tamanho: 'P', valor: 10, quantidade: 1, imagens: [] }] },
+      { ...payloadValido, variantes: [{ id: null, cor: 'a'.repeat(61), tamanho: 'P', valor: 10, quantidade: 1, imagens: [] }] },
       SUPABASE_URL
     )
     expect(r.ok).toBe(false)
@@ -436,7 +646,7 @@ describe('validação de produto', () => {
 
   it('rejeita valor negativo', () => {
     const r = validarProdutoPayload(
-      { ...payloadValido, variantes: [{ tamanho: 'P', valor: -1, quantidade: 1, imagens: [] }] },
+      { ...payloadValido, variantes: [{ id: null, tamanho: 'P', valor: -1, quantidade: 1, imagens: [] }] },
       SUPABASE_URL
     )
     expect(r.ok).toBe(false)
@@ -445,13 +655,13 @@ describe('validação de produto', () => {
   it('rejeita quantidade não inteira ou negativa', () => {
     expect(
       validarProdutoPayload(
-        { ...payloadValido, variantes: [{ tamanho: 'P', valor: 10, quantidade: 1.5, imagens: [] }] },
+        { ...payloadValido, variantes: [{ id: null, tamanho: 'P', valor: 10, quantidade: 1.5, imagens: [] }] },
         SUPABASE_URL
       ).ok
     ).toBe(false)
     expect(
       validarProdutoPayload(
-        { ...payloadValido, variantes: [{ tamanho: 'P', valor: 10, quantidade: -1, imagens: [] }] },
+        { ...payloadValido, variantes: [{ id: null, tamanho: 'P', valor: 10, quantidade: -1, imagens: [] }] },
         SUPABASE_URL
       ).ok
     ).toBe(false)
@@ -461,7 +671,7 @@ describe('validação de produto', () => {
     const r = validarProdutoPayload(
       {
         ...payloadValido,
-        variantes: [{ tamanho: 'P', valor: 10, quantidade: 1, sku: 's'.repeat(41), imagens: [] }]
+        variantes: [{ id: null, tamanho: 'P', valor: 10, quantidade: 1, sku: 's'.repeat(41), imagens: [] }]
       },
       SUPABASE_URL
     )
@@ -472,7 +682,7 @@ describe('validação de produto', () => {
     const r = validarProdutoPayload(
       {
         ...payloadValido,
-        variantes: [{ tamanho: 'P', valor: 10, quantidade: 1, imagens: ['https://evil.com/x.jpg'] }]
+        variantes: [{ id: null, tamanho: 'P', valor: 10, quantidade: 1, imagens: ['https://evil.com/x.jpg'] }]
       },
       SUPABASE_URL
     )

@@ -8,10 +8,12 @@ export interface ItemImagem {
 }
 
 export interface VarianteNovo {
+  id?: number | null
   cor: string | null
   tamanho: string
   valor: number
   quantidade: number
+  ativo: boolean
   sku?: string | null
   imagens: ItemImagem[]
 }
@@ -93,10 +95,12 @@ export function useSalvarProduto() {
       const imagens = await resolverImagens(v.imagens)
 
       variantes.push({
+        id: v.id ?? null,
         cor: v.cor ?? null,
         tamanho: v.tamanho,
         valor: v.valor,
         quantidade: v.quantidade,
+        ativo: v.ativo,
         sku: v.sku ?? null,
         imagens
       })

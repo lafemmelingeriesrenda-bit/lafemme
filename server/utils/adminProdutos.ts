@@ -110,19 +110,25 @@ export async function filtrarFotosSemOutraReferencia(
     return []
   }
 
-  const { data: variantes, error } = await admin
-    .from('produto_variante')
-    .select('foto, foto_variante(url)')
-    .neq('produto_id', produtoId)
+  const [consultaVariantes, consultaItens] = await Promise.all([
+    admin
+      .from('produto_variante')
+      .select('foto, foto_variante(url)')
+      .neq('produto_id', produtoId),
+    admin
+      .from('itens_pedido')
+      .select('foto')
+  ])
 
-  if (error) {
-    console.error('[adminProdutos] erro ao verificar referências de fotos:', error.message)
+  if (consultaVariantes.error || consultaItens.error) {
+    const mensagemErro = consultaVariantes.error?.message ?? consultaItens.error?.message ?? 'erro desconhecido'
+    console.error('[adminProdutos] erro ao verificar referências de fotos:', mensagemErro)
     throw createError({ statusCode: 500, statusMessage: 'Erro interno do servidor.' })
   }
 
   const referenciados = new Set<string>()
 
-  for (const v of (variantes ?? []) as unknown as Array<{
+  for (const v of (consultaVariantes.data ?? []) as unknown as Array<{
     foto: string | null
     foto_variante?: Array<{ url: string }>
   }>) {
@@ -135,6 +141,15 @@ export async function filtrarFotosSemOutraReferencia(
 
     for (const f of v.foto_variante ?? []) {
       const caminho = storagePathDaUrl(f.url, supabaseUrl)
+      if (caminho !== null) {
+        referenciados.add(caminho)
+      }
+    }
+  }
+
+  for (const item of (consultaItens.data ?? []) as unknown as Array<{ foto: string | null }>) {
+    if (item.foto) {
+      const caminho = storagePathDaUrl(item.foto, supabaseUrl)
       if (caminho !== null) {
         referenciados.add(caminho)
       }

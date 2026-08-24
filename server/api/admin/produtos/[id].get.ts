@@ -9,6 +9,7 @@ interface LinhaVariante {
   quantidade: number
   sku: string | null
   foto: string | null
+  ativo: boolean
 }
 
 interface LinhaFoto {
@@ -42,7 +43,7 @@ export default defineEventHandler(async (event): Promise<AdminProdutoDetalhe> =>
 
   const { data: variantesDb, error: erroVariantes } = await admin
     .from('produto_variante')
-    .select('id, cor, tamanho, valor, quantidade, sku, foto')
+    .select('id, cor, tamanho, valor, quantidade, sku, foto, ativo')
     .eq('produto_id', id)
     .order('id')
 
@@ -94,6 +95,7 @@ export default defineEventHandler(async (event): Promise<AdminProdutoDetalhe> =>
       valor: v.valor,
       quantidade: v.quantidade,
       sku: v.sku,
+      ativo: v.ativo,
       fotos: fotosPorVariante.get(v.id) ?? []
     }))
   }
