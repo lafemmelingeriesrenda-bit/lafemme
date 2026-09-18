@@ -91,4 +91,22 @@ describe('mapearRespostaRpcProduto', () => {
     expect(mapearRespostaRpcProduto({ ok: true })).toBeNull()
     expect(mapearRespostaRpcProduto({ ok: true, id: 1 })).toBeNull()
   })
+
+  it.each([
+    'VARIANTE_ID_AUSENTE',
+    'VARIANTE_ID_DUPLICADO',
+    'VARIANTE_NAO_ENCONTRADA',
+    'VARIANTE_FORA_DO_PRODUTO',
+    'VARIANTE_HISTORICA_IMUTAVEL',
+    'VARIANTE_ATIVO_AUSENTE',
+    'VARIANTE_ATIVO_INVALIDO',
+    'COMBINACAO_VARIANTE_DUPLICADA',
+    'TAMANHO_UNICO_INCOMPATIVEL'
+  ])('reconhece o código de validação de variante %s', (codigo) => {
+    expect(mapearRespostaRpcProduto({ ok: false, codigo, erro: 'x' })).toEqual({
+      ok: false,
+      codigo,
+      erro: 'x'
+    })
+  })
 })
