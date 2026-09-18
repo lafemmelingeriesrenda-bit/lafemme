@@ -207,8 +207,9 @@ import {
   type ProdutoPublico,
   type VarianteProdutoPublico
 } from '~/composables/useProdutoPublico'
+import { montarGaleria } from '~/utils/galeriaProduto'
 import { caminhoProdutoSeSlugDiferente, urlProduto } from '~/utils/slugProduto'
-import type { FotosProdutoResposta } from '~/types/fotos-produto'
+import type { FotoProdutoPublica, FotosProdutoResposta } from '~/types/fotos-produto'
 
 defineOptions({ name: 'PaginaProduto' })
 
@@ -220,7 +221,7 @@ const slugDoParam = String(route.params.slug ?? '')
 
 const { produto, carregando, erro } = useProdutoPublico(Number.isInteger(id) && id > 0 ? id : 0)
 
-const fotosComplementares = ref<string[]>([])
+const fotosComplementares = ref<FotoProdutoPublica[]>([])
 const fotoAtiva = ref(0)
 const corSelecionada = ref<CorProdutoPublico | null>(null)
 const tamanhoSelecionado = ref<VarianteProdutoPublico | null>(null)
@@ -248,18 +249,17 @@ const podeAumentar = computed<boolean>(() =>
   Boolean(tamanhoAtivo.value && quantidade.value < tamanhoAtivo.value.quantidade)
 )
 
-const galeria = computed<string[]>(() => {
-  const lista: string[] = []
-
-  if (corAtiva.value?.foto) {
-    lista.push(corAtiva.value.foto)
-  }
-
-  lista.push(...fotosComplementares.value)
-  return lista
-})
+const galeria = computed<string[]>(() =>
+  montarGaleria(corAtiva.value?.foto, fotosComplementares.value, corAtiva.value?.cor)
+)
 
 const fotoPrincipal = computed<string>(() => galeria.value[fotoAtiva.value] ?? '')
+
+watch(galeria, (lista) => {
+  if (fotoAtiva.value >= lista.length) {
+    fotoAtiva.value = 0
+  }
+})
 
 const precoExibido = computed<string>(() =>
   tamanhoAtivo.value ? formatarPreco(tamanhoAtivo.value.valor) : '—'
@@ -325,7 +325,7 @@ function carregarFotosComplementares(produtoPublico: ProdutoPublico): void {
 
   $fetch<FotosProdutoResposta>(`/api/produtos/${produtoPublico.id}/fotos`)
     .then((resposta) => {
-      fotosComplementares.value = resposta.fotos
+      fotosComplementares.value = Array.isArray(resposta.fotos) ? resposta.fotos : []
     })
     .catch(() => {
       fotosComplementares.value = []
