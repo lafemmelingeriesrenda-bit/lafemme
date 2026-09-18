@@ -1,5 +1,5 @@
-import { computed, unref } from 'vue'
-import type { MaybeRefOrGetter } from 'vue'
+import { computed, toValue } from 'vue'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
 
 export interface ProdutoFiltravel {
   id: number
@@ -8,17 +8,17 @@ export interface ProdutoFiltravel {
 }
 
 export interface BuscaProdutosResult<T extends ProdutoFiltravel> {
-  filtrados: computed
+  filtrados: ComputedRef<T[]>
 }
 
 export function useBuscaProdutos<T extends ProdutoFiltravel>(
   produtos: MaybeRefOrGetter<T[] | null | undefined>,
   busca: MaybeRefOrGetter<string>
 ) {
-  const termo = computed(() => unref(busca).trim().toLowerCase())
+  const termo = computed(() => toValue(busca).trim().toLowerCase())
 
   const filtrados = computed<T[]>(() => {
-    const lista = unref(produtos)
+    const lista = toValue(produtos)
     const rows: T[] = Array.isArray(lista) ? lista : []
 
     if (!termo.value) {
