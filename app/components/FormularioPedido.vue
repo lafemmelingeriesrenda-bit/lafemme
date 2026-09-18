@@ -51,13 +51,13 @@
     </div>
 
     <div
-      v-if="mensagemErro"
+      v-if="erroExibido"
       id="formulario-pedido-erro"
       class="flex items-start gap-2 rounded-luxe border border-red-300 bg-red-50 px-4 py-3"
       role="alert"
     >
       <ExclamationTriangleIcon class="mt-0.5 h-5 w-5 shrink-0 text-red-500" aria-hidden="true" />
-      <p class="font-sans text-sm text-red-700">{{ mensagemErro }}</p>
+      <p class="font-sans text-sm text-red-700">{{ erroExibido }}</p>
     </div>
 
     <BaseButton
@@ -67,7 +67,7 @@
       variant="primary"
       size="md"
       class="w-full"
-      :loading="carregando"
+      :loading="carregando || validando"
       :disabled="itens.length === 0"
     />
   </form>
@@ -80,6 +80,7 @@ import BaseButton from '~/components/BaseButton.vue'
 import BaseInput from '~/components/BaseInput.vue'
 import { useCarrinho } from '~/composables/useCarrinho'
 import { useCriarPedido } from '~/composables/useCriarPedido'
+import { useValidarCarrinho } from '~/composables/useValidarCarrinho'
 import { useWhatsApp } from '~/composables/useWhatsApp'
 import type { PedidoCriado } from '~/types/pedido'
 
@@ -90,9 +91,14 @@ const emit = defineEmits<{
 
 defineOptions({ name: 'FormularioPedido' })
 
-const { itens, limpar } = useCarrinho()
+const { itens, limpar, alterarQuantidade, definirEstoque } = useCarrinho()
 const { carregando, mensagemErro, criarPedido } = useCriarPedido()
+const { carregando: validando, validar: validarCarrinho } = useValidarCarrinho()
 const { abrirWhatsAppPedido } = useWhatsApp()
+
+const mensagemValidacao = ref<string | null>(null)
+
+const erroExibido = computed(() => mensagemValidacao.value ?? mensagemErro.value)
 
 const form = reactive({
   nome: '',
@@ -132,7 +138,7 @@ function validar(): boolean {
 }
 
 async function enviarPedido() {
-  if (carregando.value) {
+  if (carregando.value || validando.value) {
     return
   }
 
@@ -143,6 +149,39 @@ async function enviarPedido() {
 
   if (!validar()) {
     return
+  }
+
+  mensagemValidacao.value = null
+
+  // Revalida contra o servidor antes de criar o pedido (camada de UX).
+  // A RPC criar_pedido continua sendo a validação definitiva no banco.
+  const validacao = await validarCarrinho(itens.value)
+
+  if (!validacao.valido) {
+    let ajustou = false
+
+    for (const erro of validacao.erros) {
+      if (
+        erro.motivo === 'ESTOQUE_INSUFICIENTE' &&
+        typeof erro.disponivel === 'number' &&
+        erro.disponivel >= 1
+      ) {
+        alterarQuantidade(erro.varianteId, erro.disponivel)
+        ajustou = true
+      }
+    }
+
+    mensagemValidacao.value = validacao.mensagem
+
+    if (ajustou) {
+      toast.info('Ajustamos as quantidades ao estoque disponível. Confira e confirme novamente.')
+    }
+
+    return
+  }
+
+  for (const item of validacao.itens) {
+    definirEstoque(item.varianteId, item.disponivel)
   }
 
   const pedido = await criarPedido({

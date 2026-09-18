@@ -6,6 +6,7 @@ export interface NovoItemCarrinho {
   tamanho: string
   valor: number
   foto: string | null
+  estoqueDisponivel?: number | null
 }
 
 export interface ItemCarrinho extends NovoItemCarrinho {

@@ -48,7 +48,8 @@ function handleAddToCart(varianteId: number) {
     cor: produto.cor,
     tamanho: variante.tamanho,
     valor: variante.valor,
-    foto: produto.foto
+    foto: produto.foto,
+    estoqueDisponivel: variante.quantidade
   })
 
   toast.success(`${produto.nome} (${variante.tamanho}) adicionado à sacola!`, { duration: 2000 })

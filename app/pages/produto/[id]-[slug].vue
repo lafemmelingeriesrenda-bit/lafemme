@@ -363,7 +363,8 @@ function adicionarAoSacola(): void {
       cor: cor.cor,
       tamanho: variante.tamanho,
       valor: variante.valor,
-      foto: cor.foto
+      foto: cor.foto,
+      estoqueDisponivel: variante.quantidade
     },
     quantidade.value
   )

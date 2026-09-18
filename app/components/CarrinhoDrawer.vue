@@ -148,8 +148,9 @@
                       </span>
                       <button
                         type="button"
-                        class="rounded-full border border-wine-200 p-1.5 text-wine-700 transition hover:border-brand hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-light"
+                        class="rounded-full border border-wine-200 p-1.5 text-wine-700 transition hover:border-brand hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-light disabled:cursor-not-allowed disabled:opacity-40"
                         :aria-label="`Aumentar quantidade de ${item.nome}`"
+                        :disabled="!podeAumentar(item.varianteId)"
                         @click="aumentar(item.varianteId)"
                       >
                         <PlusIcon class="h-4 w-4" />
@@ -170,6 +171,13 @@
                       </button>
                     </div>
                   </div>
+
+                  <p
+                    v-if="atingiuEstoqueMaximo(item)"
+                    class="mt-1 font-sans text-xs text-wine-500"
+                  >
+                    Quantidade máxima disponível em estoque.
+                  </p>
                 </div>
               </article>
             </div>
@@ -216,6 +224,7 @@ import BaseButton from '~/components/BaseButton.vue'
 import FormularioPedido from '~/components/FormularioPedido.vue'
 import { useCarrinho } from '~/composables/useCarrinho'
 import { useWhatsApp } from '~/composables/useWhatsApp'
+import type { ItemCarrinho } from '~/types/carrinho'
 import type { PedidoCriado } from '~/types/pedido'
 
 interface Props {
@@ -230,8 +239,14 @@ const emit = defineEmits<{
 
 defineOptions({ name: 'CarrinhoDrawer' })
 
-const { itens, quantidadeTotal, subtotal, aumentar, diminuir, remover } = useCarrinho()
+const { itens, quantidadeTotal, subtotal, aumentar, diminuir, remover, podeAumentar, estoqueMaximo } =
+  useCarrinho()
 const { abrirWhatsAppPedido } = useWhatsApp()
+
+function atingiuEstoqueMaximo(item: ItemCarrinho): boolean {
+  const maximo = estoqueMaximo(item.varianteId)
+  return maximo !== null && item.quantidade >= maximo
+}
 
 type Passo = 'sacola' | 'dados'
 
