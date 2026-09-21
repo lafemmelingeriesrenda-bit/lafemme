@@ -2,7 +2,6 @@ import type { FiltrosPedidosAdmin, StatusPedido, StatusPedidoOperacional } from 
 
 export const STATUS_PEDIDO_LABEL: Record<StatusPedido, string> = {
   aguardando_atendimento: 'Aguardando atendimento',
-  em_atendimento: 'Em atendimento',
   aguardando_pagamento: 'Aguardando pagamento',
   pago: 'Pago',
   enviado: 'Enviado',
@@ -13,14 +12,12 @@ export const STATUS_PEDIDO_LABEL: Record<StatusPedido, string> = {
 
 const STATUS_OPERACIONAIS: StatusPedidoOperacional[] = [
   'aguardando_atendimento',
-  'em_atendimento',
   'finalizado',
   'cancelado'
 ]
 
 const TRANSICOES_VALIDAS: Record<StatusPedidoOperacional, StatusPedidoOperacional[]> = {
-  aguardando_atendimento: ['em_atendimento', 'cancelado'],
-  em_atendimento: ['finalizado', 'cancelado'],
+  aguardando_atendimento: ['finalizado', 'cancelado'],
   finalizado: [],
   cancelado: []
 }

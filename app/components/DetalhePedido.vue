@@ -95,7 +95,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   fechar: []
-  atender: [pedido: AdminPedidoDetalhe]
   finalizar: [pedido: AdminPedidoDetalhe]
   cancelar: [pedido: AdminPedidoDetalhe]
 }>()
@@ -115,10 +114,6 @@ const textoConfirmar = computed(() => {
     return 'Fechar'
   }
 
-  if (transicaoValida(status, 'em_atendimento')) {
-    return 'Iniciar atendimento'
-  }
-
   if (transicaoValida(status, 'finalizado')) {
     return 'Finalizar venda'
   }
@@ -130,9 +125,7 @@ function handleConfirmar() {
   const pedido = props.pedido
   const status = pedido?.status
 
-  if (status && transicaoValida(status, 'em_atendimento')) {
-    emit('atender', pedido)
-  } else if (status && transicaoValida(status, 'finalizado')) {
+  if (status && transicaoValida(status, 'finalizado')) {
     emit('finalizar', pedido)
   } else {
     emit('fechar')

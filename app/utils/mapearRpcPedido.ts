@@ -42,7 +42,6 @@ const CODIGOS_ERRO: CodigoErroRpcPedido[] = [
 
 const STATUS_PEDIDO: StatusPedido[] = [
   'aguardando_atendimento',
-  'em_atendimento',
   'aguardando_pagamento',
   'pago',
   'enviado',

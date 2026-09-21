@@ -76,7 +76,6 @@
       :loading="carregando"
       :erro="erro"
       @selecionar="abrirDetalhe"
-      @atender="iniciarAtendimento"
       @finalizar="confirmarFinalizacao"
       @cancelar="cancelarPedido"
     />
@@ -86,7 +85,6 @@
       :pedido="pedidoDetalhe"
       :carregando="carregandoDetalhe"
       @fechar="detalheAberto = false"
-      @atender="iniciarAtendimento"
       @finalizar="confirmarFinalizacao"
       @cancelar="cancelarPedido"
     />
@@ -122,7 +120,6 @@ definePageMeta({ layout: 'layout-principal', middleware: 'admin' })
 
 const STATUS_OPERACIONAIS: Record<StatusPedidoOperacional, string> = {
   aguardando_atendimento: STATUS_PEDIDO_LABEL.aguardando_atendimento,
-  em_atendimento: STATUS_PEDIDO_LABEL.em_atendimento,
   finalizado: STATUS_PEDIDO_LABEL.finalizado,
   cancelado: STATUS_PEDIDO_LABEL.cancelado
 }
@@ -202,10 +199,6 @@ async function abrirDetalhe(pedido: AdminPedidoLista) {
   }
 }
 
-async function iniciarAtendimento(pedido: AdminPedidoLista | AdminPedidoDetalhe) {
-  await executarTransicao(pedido.id, 'em_atendimento', 'Atendimento iniciado.')
-}
-
 async function cancelarPedido(pedido: AdminPedidoLista | AdminPedidoDetalhe) {
   await executarTransicao(pedido.id, 'cancelado', 'Pedido cancelado.')
 }
@@ -246,7 +239,7 @@ async function finalizarVenda() {
   }
 }
 
-async function executarTransicao(id: number, status: 'em_atendimento' | 'cancelado', mensagemSucesso: string) {
+async function executarTransicao(id: number, status: 'cancelado', mensagemSucesso: string) {
   try {
     const resultado = await atualizarStatus(id, status)
 

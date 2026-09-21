@@ -23,7 +23,7 @@ const pedidoLista: AdminPedidoLista = {
 
 const pedidoDetalhe: AdminPedidoDetalhe = {
   ...pedidoLista,
-  status: 'em_atendimento',
+  status: 'aguardando_atendimento',
   itens: [
     {
       id: 1,
@@ -54,10 +54,10 @@ describe('usePedidosAdmin', () => {
     rawMock.mockResolvedValue(respostaDe(200, [pedidoLista]))
 
     const { listarPedidos } = usePedidosAdmin()
-    const pedidos = await listarPedidos({ status: 'em_atendimento', busca: 'ana' })
+    const pedidos = await listarPedidos({ status: 'aguardando_atendimento', busca: 'ana' })
 
     expect(rawMock).toHaveBeenCalledWith(
-      '/api/admin/pedidos?status=em_atendimento&busca=ana',
+      '/api/admin/pedidos?status=aguardando_atendimento&busca=ana',
       expect.objectContaining({ ignoreResponseError: true })
     )
     expect(pedidos).toHaveLength(1)
@@ -108,16 +108,16 @@ describe('usePedidosAdmin', () => {
   })
 
   it('atualizarStatus retorna sucesso para 2xx', async () => {
-    rawMock.mockResolvedValue(respostaDe(200, { sucesso: true, pedido: { id: 7, status: 'em_atendimento' } }))
+    rawMock.mockResolvedValue(respostaDe(200, { sucesso: true, pedido: { id: 7, status: 'cancelado' } }))
 
     const { atualizarStatus } = usePedidosAdmin()
-    const resultado = await atualizarStatus(7, 'em_atendimento')
+    const resultado = await atualizarStatus(7, 'cancelado')
 
     expect(rawMock).toHaveBeenCalledWith(
       '/api/admin/pedidos/7',
-      expect.objectContaining({ method: 'PATCH', body: { status: 'em_atendimento' } })
+      expect.objectContaining({ method: 'PATCH', body: { status: 'cancelado' } })
     )
-    expect(resultado).toEqual({ sucesso: true, pedido: { id: 7, status: 'em_atendimento' } })
+    expect(resultado).toEqual({ sucesso: true, pedido: { id: 7, status: 'cancelado' } })
   })
 
   it('atualizarStatus retorna erro com mensagem em 409', async () => {

@@ -9,26 +9,20 @@ import {
 } from '../app/utils/pedidoAdmin'
 
 describe('pedidoAdmin — transições de status', () => {
-  it('aceita aguardando_atendimento -> em_atendimento e cancelado', () => {
-    expect(transicaoValida('aguardando_atendimento', 'em_atendimento')).toBe(true)
+  it('aceita aguardando_atendimento -> finalizado e cancelado', () => {
+    expect(transicaoValida('aguardando_atendimento', 'finalizado')).toBe(true)
     expect(transicaoValida('aguardando_atendimento', 'cancelado')).toBe(true)
-  })
-
-  it('aceita em_atendimento -> finalizado e cancelado', () => {
-    expect(transicaoValida('em_atendimento', 'finalizado')).toBe(true)
-    expect(transicaoValida('em_atendimento', 'cancelado')).toBe(true)
   })
 
   it('rejeita qualquer transição a partir de finalizado e cancelado', () => {
     expect(transicaoValida('finalizado', 'cancelado')).toBe(false)
-    expect(transicaoValida('finalizado', 'em_atendimento')).toBe(false)
+    expect(transicaoValida('finalizado', 'finalizado')).toBe(false)
     expect(transicaoValida('cancelado', 'finalizado')).toBe(false)
     expect(transicaoValida('cancelado', 'aguardando_atendimento')).toBe(false)
   })
 
   it('rejeita transições inválidas entre operacionais', () => {
-    expect(transicaoValida('aguardando_atendimento', 'finalizado')).toBe(false)
-    expect(transicaoValida('em_atendimento', 'em_atendimento')).toBe(false)
+    expect(transicaoValida('aguardando_atendimento', 'aguardando_atendimento')).toBe(false)
   })
 
   it('rejeita status fora do fluxo operacional (ex.: pago) como origem', () => {
@@ -38,9 +32,8 @@ describe('pedidoAdmin — transições de status', () => {
 })
 
 describe('pedidoAdmin — ehStatusPedidoOperacional', () => {
-  it('reconhece apenas os quatro status operacionais', () => {
+  it('reconhece apenas os três status operacionais', () => {
     expect(ehStatusPedidoOperacional('aguardando_atendimento')).toBe(true)
-    expect(ehStatusPedidoOperacional('em_atendimento')).toBe(true)
     expect(ehStatusPedidoOperacional('finalizado')).toBe(true)
     expect(ehStatusPedidoOperacional('cancelado')).toBe(true)
 
@@ -51,14 +44,21 @@ describe('pedidoAdmin — ehStatusPedidoOperacional', () => {
     expect(ehStatusPedidoOperacional('')).toBe(false)
     expect(ehStatusPedidoOperacional(null)).toBe(false)
   })
+
+  it('não reconhece mais em_atendimento', () => {
+    expect(ehStatusPedidoOperacional('em_atendimento')).toBe(false)
+  })
 })
 
 describe('pedidoAdmin — rótulos', () => {
   it('possui rótulo legível para todos os status', () => {
     expect(STATUS_PEDIDO_LABEL.aguardando_atendimento).toBe('Aguardando atendimento')
-    expect(STATUS_PEDIDO_LABEL.em_atendimento).toBe('Em atendimento')
     expect(STATUS_PEDIDO_LABEL.finalizado).toBe('Finalizado')
     expect(STATUS_PEDIDO_LABEL.cancelado).toBe('Cancelado')
+  })
+
+  it('não possui rótulo para em_atendimento', () => {
+    expect('em_atendimento' in STATUS_PEDIDO_LABEL).toBe(false)
   })
 
   it('formata moeda em pt-BR', () => {
@@ -88,7 +88,7 @@ describe('pedidoAdmin — validação de filtros', () => {
   it('aceita combinação válida de status e datas', () => {
     expect(
       validarFiltrosPedidos({
-        status: 'em_atendimento',
+        status: 'finalizado',
         busca: 'ana',
         dataInicio: '2026-08-01',
         dataFim: '2026-08-18'

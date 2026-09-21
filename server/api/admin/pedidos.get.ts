@@ -9,7 +9,6 @@ function normalizarStatus(valor: unknown): FiltrosPedidosAdmin['status'] {
 
   const validos = [
     'aguardando_atendimento',
-    'em_atendimento',
     'aguardando_pagamento',
     'pago',
     'enviado',

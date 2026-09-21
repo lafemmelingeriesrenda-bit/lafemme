@@ -2,14 +2,14 @@ import { requireAdmin } from '../../../utils/requireAdmin'
 import { mapearRespostaRpcAcaoPedido } from '~/utils/mapearRpcPedido'
 import type { PedidoAcaoResultado } from '~/types/pedido-admin'
 
-type StatusDestino = 'em_atendimento' | 'cancelado' | 'finalizado'
+type StatusDestino = 'cancelado' | 'finalizado'
 
 function normalizarStatusDestino(valor: unknown): StatusDestino | null {
   if (typeof valor !== 'string') {
     return null
   }
 
-  if (valor === 'em_atendimento' || valor === 'cancelado' || valor === 'finalizado') {
+  if (valor === 'cancelado' || valor === 'finalizado') {
     return valor
   }
 

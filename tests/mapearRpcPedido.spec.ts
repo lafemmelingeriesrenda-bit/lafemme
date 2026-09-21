@@ -49,7 +49,7 @@ describe('mapearRespostaRpcObterPedido', () => {
   const pedidoDetalhe = {
     id: 7,
     cliente_id: null,
-    status: 'em_atendimento',
+    status: 'aguardando_atendimento',
     subtotal: 120,
     frete: 0,
     total: 120,

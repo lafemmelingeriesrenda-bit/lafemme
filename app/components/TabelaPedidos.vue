@@ -52,16 +52,8 @@
 
           <div class="mt-3 flex gap-2">
             <BaseButton
-              :id="`tabela-pedidos-card-${pedido.id}-atender`"
-              v-if="pedido.status === 'aguardando_atendimento'"
-              label="Atender"
-              variant="primary"
-              size="sm"
-              @click="emit('atender', pedido)"
-            />
-            <BaseButton
               :id="`tabela-pedidos-card-${pedido.id}-finalizar`"
-              v-if="pedido.status === 'em_atendimento'"
+              v-if="pedido.status === 'aguardando_atendimento'"
               label="Finalizar"
               variant="primary"
               size="sm"
@@ -122,16 +114,8 @@
               <td class="px-6 py-3">
                 <div class="flex flex-wrap gap-2">
                   <BaseButton
-                    :id="`tabela-pedidos-${pedido.id}-atender`"
-                    v-if="pedido.status === 'aguardando_atendimento'"
-                    label="Atender"
-                    variant="primary"
-                    size="sm"
-                    @click="emit('atender', pedido)"
-                  />
-                  <BaseButton
                     :id="`tabela-pedidos-${pedido.id}-finalizar`"
-                    v-if="pedido.status === 'em_atendimento'"
+                    v-if="pedido.status === 'aguardando_atendimento'"
                     label="Finalizar"
                     variant="primary"
                     size="sm"
@@ -171,7 +155,6 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   selecionar: [pedido: AdminPedidoLista]
-  atender: [pedido: AdminPedidoLista]
   finalizar: [pedido: AdminPedidoLista]
   cancelar: [pedido: AdminPedidoLista]
 }>()
@@ -183,7 +166,6 @@ function statusLabel(status: StatusPedido): string {
 function badgeClasse(status: StatusPedido): string {
   const classes: Record<StatusPedido, string> = {
     aguardando_atendimento: 'bg-wine-100 text-wine-800',
-    em_atendimento: 'bg-amber-100 text-amber-800',
     aguardando_pagamento: 'bg-amber-100 text-amber-800',
     pago: 'bg-emerald-100 text-emerald-800',
     enviado: 'bg-sky-100 text-sky-800',
@@ -196,7 +178,7 @@ function badgeClasse(status: StatusPedido): string {
 }
 
 function podeCancelar(status: StatusPedido): boolean {
-  return status === 'aguardando_atendimento' || status === 'em_atendimento'
+  return status === 'aguardando_atendimento'
 }
 
 function telefoneTexto(telefone: string): string {

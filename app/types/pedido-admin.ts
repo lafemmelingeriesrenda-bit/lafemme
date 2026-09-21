@@ -1,6 +1,5 @@
 export type StatusPedido =
   | 'aguardando_atendimento'
-  | 'em_atendimento'
   | 'aguardando_pagamento'
   | 'pago'
   | 'enviado'
@@ -8,7 +7,7 @@ export type StatusPedido =
   | 'cancelado'
   | 'finalizado'
 
-export type StatusPedidoOperacional = 'aguardando_atendimento' | 'em_atendimento' | 'finalizado' | 'cancelado'
+export type StatusPedidoOperacional = 'aguardando_atendimento' | 'finalizado' | 'cancelado'
 
 export interface AdminPedidoLista {
   id: number
