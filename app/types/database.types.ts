@@ -60,6 +60,124 @@ export interface Database {
         }
         Relationships: []
       }
+      compras: {
+        Row: {
+          id: number
+          fornecedor_id: number | null
+          tipo: string
+          categoria: string | null
+          descricao: string | null
+          data_compra: string
+          subtotal: number
+          frete: number
+          desconto: number
+          total: number
+          forma_pagamento: string | null
+          status_pagamento: string
+          vencimento: string | null
+          pago_em: string | null
+          status: string
+          recebida_em: string | null
+          cancelada_em: string | null
+          observacao: string | null
+          comprovante_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          fornecedor_id?: number | null
+          tipo: string
+          categoria?: string | null
+          descricao?: string | null
+          data_compra?: string
+          subtotal?: number
+          frete?: number
+          desconto?: number
+          total?: number
+          forma_pagamento?: string | null
+          status_pagamento?: string
+          vencimento?: string | null
+          pago_em?: string | null
+          status?: string
+          recebida_em?: string | null
+          cancelada_em?: string | null
+          observacao?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          fornecedor_id?: number | null
+          tipo?: string
+          categoria?: string | null
+          descricao?: string | null
+          data_compra?: string
+          subtotal?: number
+          frete?: number
+          desconto?: number
+          total?: number
+          forma_pagamento?: string | null
+          status_pagamento?: string
+          vencimento?: string | null
+          pago_em?: string | null
+          status?: string
+          recebida_em?: string | null
+          cancelada_em?: string | null
+          observacao?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'compras_fornecedor_id_fkey'
+            columns: ['fornecedor_id']
+            referencedRelation: 'fornecedores'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      fornecedores: {
+        Row: {
+          id: number
+          nome: string
+          cnpj: string | null
+          telefone: string | null
+          email: string | null
+          contato: string | null
+          observacao: string | null
+          ativo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          nome: string
+          cnpj?: string | null
+          telefone?: string | null
+          email?: string | null
+          contato?: string | null
+          observacao?: string | null
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          nome?: string
+          cnpj?: string | null
+          telefone?: string | null
+          email?: string | null
+          contato?: string | null
+          observacao?: string | null
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       foto_variante: {
         Row: {
           id: number
@@ -83,6 +201,58 @@ export interface Database {
           {
             foreignKeyName: 'foto_variante_id_variante_fkey'
             columns: ['id_variante']
+            referencedRelation: 'produto_variante'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      itens_compra: {
+        Row: {
+          id: number
+          compra_id: number
+          produto_variante_id: number | null
+          descricao: string
+          cor: string | null
+          tamanho: string | null
+          quantidade: number
+          valor_unitario: number
+          subtotal: number
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          compra_id: number
+          produto_variante_id?: number | null
+          descricao: string
+          cor?: string | null
+          tamanho?: string | null
+          quantidade: number
+          valor_unitario: number
+          subtotal: number
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          compra_id?: number
+          produto_variante_id?: number | null
+          descricao?: string
+          cor?: string | null
+          tamanho?: string | null
+          quantidade?: number
+          valor_unitario?: number
+          subtotal?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'itens_compra_compra_id_fkey'
+            columns: ['compra_id']
+            referencedRelation: 'compras'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'itens_compra_produto_variante_id_fkey'
+            columns: ['produto_variante_id']
             referencedRelation: 'produto_variante'
             referencedColumns: ['id']
           }
