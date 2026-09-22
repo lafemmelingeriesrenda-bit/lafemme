@@ -80,12 +80,14 @@
 
 <script setup lang="ts">
 import {
+  BanknotesIcon,
   ChartBarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CubeIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
+  TruckIcon,
   UsersIcon,
   XMarkIcon
 } from '@heroicons/vue/24/outline'
@@ -129,6 +131,8 @@ const items: NavItem[] = [
   { id: 'app-sidebar-produtos', label: 'Produtos', icon: CubeIcon, to: '/produtos' },
   { id: 'app-sidebar-pedidos', label: 'Pedidos', icon: ShoppingCartIcon, to: '/pedidos' },
   { id: 'app-sidebar-clientes', label: 'Clientes', icon: UsersIcon, to: '/clientes' },
+  { id: 'app-sidebar-fornecedores', label: 'Fornecedores', icon: TruckIcon, to: '/fornecedores' },
+  { id: 'app-sidebar-compras', label: 'Compras', icon: BanknotesIcon, to: '/compras' },
   { id: 'app-sidebar-relatorios', label: 'Relatórios', icon: ChartBarIcon, to: '/relatorios' }
 ]
 </script>

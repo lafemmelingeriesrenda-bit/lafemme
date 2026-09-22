@@ -499,6 +499,20 @@ export interface Database {
       }
     }
     Functions: {
+      admin_alterar_status_fornecedor: {
+        Args: {
+          p_id: number
+          p_ativo: boolean
+        }
+        Returns: Json
+      }
+      admin_atualizar_fornecedor: {
+        Args: {
+          p_id: number
+          p_dados: Json
+        }
+        Returns: Json
+      }
       admin_atualizar_produto: {
         Args: {
           p_id: number
@@ -510,6 +524,12 @@ export interface Database {
         Args: {
           p_id: number
           p_status: string
+        }
+        Returns: Json
+      }
+      admin_criar_fornecedor: {
+        Args: {
+          p_dados: Json
         }
         Returns: Json
       }
@@ -531,9 +551,21 @@ export interface Database {
         }
         Returns: Json
       }
+      admin_listar_fornecedores: {
+        Args: {
+          p_filtros?: Json | null
+        }
+        Returns: Json
+      }
       admin_listar_pedidos: {
         Args: {
           p_filtros?: Json | null
+        }
+        Returns: Json
+      }
+      admin_obter_fornecedor: {
+        Args: {
+          p_id: number
         }
         Returns: Json
       }
