@@ -607,6 +607,12 @@ export interface Database {
         }
         Returns: Json
       }
+      admin_relatorio_financeiro_compras: {
+        Args: {
+          p_filtros?: Json | null
+        }
+        Returns: Json
+      }
       criar_pedido: {
         Args: {
           p_itens: Json
