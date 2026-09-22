@@ -12,6 +12,7 @@ export interface AdminProdutoLista {
   descricao: string | null
   categoria: string | null
   slug: string | null
+  publicado: boolean
   capa: string | null
   variantes: AdminVarianteLista[]
 }
@@ -33,6 +34,7 @@ export interface AdminProdutoDetalhe {
   descricao: string | null
   categoria: string | null
   slug: string | null
+  publicado: boolean
   capa: string | null
   variantes: AdminVarianteDetalhe[]
 }

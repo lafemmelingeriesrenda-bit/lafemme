@@ -4,6 +4,7 @@ import type {
   CompraCriarPayload,
   CompraDetalhadaAdmin,
   FiltrosComprasAdmin,
+  ProdutoRascunhoItemPayload,
   StatusCompra
 } from '~/types/compra-admin'
 
@@ -143,11 +144,53 @@ export function useComprasAdmin() {
     throw new Error(extrairMensagem(resposta._data, MENSAGEM_FALHA))
   }
 
+  async function vincularItemCompra(itemId: number, varianteId: number): Promise<void> {
+    const resposta = await $fetch.raw(`/api/admin/compras/itens/${itemId}/vinculo`, {
+      method: 'PATCH',
+      body: { variante_id: varianteId },
+      ignoreResponseError: true
+    })
+
+    if (resposta.status < 200 || resposta.status >= 300) {
+      throw new Error(extrairMensagem(resposta._data, MENSAGEM_FALHA))
+    }
+  }
+
+  async function desvincularItemCompra(itemId: number): Promise<void> {
+    const resposta = await $fetch.raw(`/api/admin/compras/itens/${itemId}/vinculo`, {
+      method: 'PATCH',
+      body: { variante_id: null },
+      ignoreResponseError: true
+    })
+
+    if (resposta.status < 200 || resposta.status >= 300) {
+      throw new Error(extrairMensagem(resposta._data, MENSAGEM_FALHA))
+    }
+  }
+
+  async function criarProdutoRascunhoItemCompra(
+    itemId: number,
+    payload: ProdutoRascunhoItemPayload
+  ): Promise<void> {
+    const resposta = await $fetch.raw(`/api/admin/compras/itens/${itemId}/criar-produto`, {
+      method: 'POST',
+      body: payload,
+      ignoreResponseError: true
+    })
+
+    if (resposta.status < 200 || resposta.status >= 300) {
+      throw new Error(extrairMensagem(resposta._data, MENSAGEM_FALHA))
+    }
+  }
+
   return {
     listarCompras,
     obterCompra,
     criarCompra,
     atualizarCompra,
-    alterarStatusCompra
+    alterarStatusCompra,
+    vincularItemCompra,
+    desvincularItemCompra,
+    criarProdutoRascunhoItemCompra
   }
 }

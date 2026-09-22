@@ -105,6 +105,9 @@
       :compra-inicial="compraEdicao"
       @fechar="modalAberto = false"
       @salvo="handleSalvo"
+      @vincular-item="abrirVincular"
+      @desvincular-item="desvincular"
+      @cadastrar-produto-item="abrirCadastrar"
     />
 
     <ModalConfirmarStatusCompra
@@ -115,6 +118,21 @@
       @fechar="statusModalAberto = false"
       @confirmar="confirmarStatus"
     />
+
+    <ModalVincularProdutoItem
+      :aberto="vincularAberto"
+      :carregando="vinculando"
+      @fechar="vincularAberto = false"
+      @confirmar="confirmarVincular"
+    />
+
+    <ModalCadastrarProdutoItem
+      :aberto="cadastrarAberto"
+      :item="itemSelecionado"
+      :salvando="cadastrando"
+      @fechar="cadastrarAberto = false"
+      @salvo="confirmarCadastrar"
+    />
   </main>
 </template>
 
@@ -123,10 +141,12 @@ import { toast } from 'vue-sonner'
 import AdminHeader from '~/components/AdminHeader.vue'
 import BaseButton from '~/components/BaseButton.vue'
 import BaseInput from '~/components/BaseInput.vue'
+import ModalCadastrarProdutoItem from '~/components/ModalCadastrarProdutoItem.vue'
 import ModalCompra from '~/components/ModalCompra.vue'
 import type { ModoModalCompra } from '~/components/ModalCompra.vue'
 import ModalConfirmarStatusCompra from '~/components/ModalConfirmarStatusCompra.vue'
 import type { AcaoStatusCompra } from '~/components/ModalConfirmarStatusCompra.vue'
+import ModalVincularProdutoItem from '~/components/ModalVincularProdutoItem.vue'
 import TabelaCompras from '~/components/TabelaCompras.vue'
 import { useComprasAdmin } from '~/composables/useComprasAdmin'
 import { useFornecedoresAdmin } from '~/composables/useFornecedoresAdmin'
@@ -137,12 +157,23 @@ import type {
   CompraAdmin,
   CompraAtualizarPayload,
   CompraDetalhadaAdmin,
+  ItemCompraAdmin,
+  ProdutoRascunhoItemPayload,
   StatusCompra
 } from '~/types/compra-admin'
 
 definePageMeta({ layout: 'layout-principal', middleware: 'admin' })
 
-const { listarCompras, obterCompra, criarCompra, atualizarCompra, alterarStatusCompra } = useComprasAdmin()
+const {
+  listarCompras,
+  obterCompra,
+  criarCompra,
+  atualizarCompra,
+  alterarStatusCompra,
+  vincularItemCompra,
+  desvincularItemCompra,
+  criarProdutoRascunhoItemCompra
+} = useComprasAdmin()
 const { listarFornecedores } = useFornecedoresAdmin()
 
 const compras = ref<CompraAdmin[]>([])
@@ -172,6 +203,12 @@ const statusModalAberto = ref(false)
 const statusAcao = ref<AcaoStatusCompra>('receber')
 const compraStatus = ref<CompraAdmin | null>(null)
 const alterandoStatus = ref(false)
+
+const itemSelecionado = ref<ItemCompraAdmin | null>(null)
+const vincularAberto = ref(false)
+const vinculando = ref(false)
+const cadastrarAberto = ref(false)
+const cadastrando = ref(false)
 
 const kpis = computed(() => {
   const valores = calcularKpis(compras.value)
@@ -310,6 +347,80 @@ async function confirmarStatus() {
     toast.error(err instanceof Error ? err.message : 'Não foi possível alterar o status.')
   } finally {
     alterandoStatus.value = false
+  }
+}
+
+async function recarregarDetalhe() {
+  if (compraEdicao.value) {
+    try {
+      compraEdicao.value = await obterCompra(compraEdicao.value.id)
+    } catch {
+      // mantém o detalhe atual em caso de falha de recarga
+    }
+  }
+
+  await carregarCompras()
+}
+
+function abrirVincular(item: ItemCompraAdmin) {
+  itemSelecionado.value = item
+  vincularAberto.value = true
+}
+
+async function confirmarVincular(varianteId: number) {
+  const item = itemSelecionado.value
+
+  if (!item || vinculando.value) {
+    return
+  }
+
+  vinculando.value = true
+
+  try {
+    await vincularItemCompra(item.id, varianteId)
+    toast.success('Item vinculado ao produto.')
+    vincularAberto.value = false
+    await recarregarDetalhe()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível vincular o item.')
+  } finally {
+    vinculando.value = false
+  }
+}
+
+function abrirCadastrar(item: ItemCompraAdmin) {
+  itemSelecionado.value = item
+  cadastrarAberto.value = true
+}
+
+async function confirmarCadastrar(payload: ProdutoRascunhoItemPayload) {
+  const item = itemSelecionado.value
+
+  if (!item || cadastrando.value) {
+    return
+  }
+
+  cadastrando.value = true
+
+  try {
+    await criarProdutoRascunhoItemCompra(item.id, payload)
+    toast.success('Produto em rascunho criado e vinculado ao item.')
+    cadastrarAberto.value = false
+    await recarregarDetalhe()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível criar o produto.')
+  } finally {
+    cadastrando.value = false
+  }
+}
+
+async function desvincular(item: ItemCompraAdmin) {
+  try {
+    await desvincularItemCompra(item.id)
+    toast.success('Item desvinculado.')
+    await recarregarDetalhe()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível desvincular o item.')
   }
 }
 

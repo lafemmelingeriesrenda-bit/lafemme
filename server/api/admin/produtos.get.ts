@@ -15,7 +15,7 @@ export default defineEventHandler(async (event): Promise<AdminProdutoLista[]> =>
   const { admin } = await requireAdmin(event)
 
   const [consultaProdutos, consultaVariantes] = await Promise.all([
-    admin.from('produtos').select('id, nome, descricao, categoria, slug').order('id'),
+    admin.from('produtos').select('id, nome, descricao, categoria, slug, publicado').order('id'),
     admin
       .from('produto_variante')
       .select('id, produto_id, cor, tamanho, valor, quantidade, foto')
@@ -58,12 +58,14 @@ export default defineEventHandler(async (event): Promise<AdminProdutoLista[]> =>
     descricao: string | null
     categoria: string | null
     slug: string | null
+    publicado: boolean
   }>).map((produto) => ({
     id: produto.id,
     nome: produto.nome,
     descricao: produto.descricao,
     categoria: produto.categoria,
     slug: produto.slug,
+    publicado: produto.publicado,
     capa: capaPorProduto.get(produto.id) ?? null,
     variantes: variantesPorProduto.get(produto.id) ?? []
   }))

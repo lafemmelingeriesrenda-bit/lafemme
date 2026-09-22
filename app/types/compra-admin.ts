@@ -117,6 +117,23 @@ export interface FiltrosComprasAdmin {
   statusPagamento?: StatusPagamentoCompra | null
 }
 
+export interface ProdutoRascunhoItemPayload {
+  nome: string
+  descricao: null
+  categoria: string | null
+  capa: null
+  variantes: Array<{
+    id: null
+    cor: string | null
+    tamanho: string
+    valor: number
+    quantidade: number
+    sku: null
+    ativo: boolean
+    imagens: string[]
+  }>
+}
+
 export interface KpisCompras {
   total: number
   mercadorias: number

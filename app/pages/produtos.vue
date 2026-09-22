@@ -14,17 +14,29 @@
       </template>
     </AdminHeader>
 
-    <div id="produtos-search" class="relative mt-6 max-w-md">
-      <MagnifyingGlassIcon
-        class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-wine-400"
-      />
-      <input
-        id="produtos-search-input"
-        type="search"
-        v-model="busca"
-        placeholder="Buscar produto..."
-        class="w-full rounded-luxe border border-wine-200 bg-white py-2.5 pl-10 pr-4 font-sans text-sm text-ink outline-none transition placeholder:font-light placeholder:text-wine-300 focus:border-brand focus:ring-2 focus:ring-wine-200"
-      />
+    <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div id="produtos-search" class="relative max-w-md flex-1">
+        <MagnifyingGlassIcon
+          class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-wine-400"
+        />
+        <input
+          id="produtos-search-input"
+          type="search"
+          v-model="busca"
+          placeholder="Buscar produto..."
+          class="w-full rounded-luxe border border-wine-200 bg-white py-2.5 pl-10 pr-4 font-sans text-sm text-ink outline-none transition placeholder:font-light placeholder:text-wine-300 focus:border-brand focus:ring-2 focus:ring-wine-200"
+        />
+      </div>
+
+      <select
+        id="produtos-filtro-publicacao"
+        v-model="filtroPublicacao"
+        class="w-full rounded-luxe border border-wine-200 bg-white px-4 py-2.5 font-sans text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-wine-200 sm:w-44"
+      >
+        <option value="todos">Todos</option>
+        <option value="publicados">Publicados</option>
+        <option value="rascunhos">Rascunhos</option>
+      </select>
     </div>
 
     <p v-if="loading" class="mt-6 font-sans text-lg text-wine-700">
@@ -38,7 +50,7 @@
     <div v-else class="mt-6">
       <div id="produtos-cards" class="flex flex-col gap-4 md:hidden">
         <article
-          v-for="produto in filtrados"
+          v-for="produto in filtradosFinal"
           :key="produto.id"
           class="rounded-luxe border border-wine-100 bg-white p-4 shadow-soft"
         >
@@ -57,9 +69,17 @@
             </div>
 
             <div class="min-w-0 flex-1">
-              <h3 class="truncate font-sans text-sm font-medium text-brand">
-                {{ produto.nome }}
-              </h3>
+              <div class="flex items-center gap-2">
+                <h3 class="truncate font-sans text-sm font-medium text-brand">
+                  {{ produto.nome }}
+                </h3>
+                <span
+                  v-if="!produto.publicado"
+                  class="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800"
+                >
+                  Rascunho
+                </span>
+              </div>
               <p class="mt-0.5 truncate font-sans text-xs text-wine-700">
                 {{ produto.categoria ?? '—' }}
               </p>
@@ -132,7 +152,7 @@
           </tr>
         </thead>
         <tbody>
-          <template v-for="produto in filtrados" :key="produto.id">
+          <template v-for="produto in filtradosFinal" :key="produto.id">
             <tr class="border-b border-wine-100 last:border-0">
             <td class="px-4 py-3">
               <button
@@ -162,7 +182,17 @@
                 —
               </div>
             </td>
-            <td class="px-6 py-3 font-medium text-brand">{{ produto.nome }}</td>
+            <td class="px-6 py-3 font-medium text-brand">
+              <div class="flex items-center gap-2">
+                <span>{{ produto.nome }}</span>
+                <span
+                  v-if="!produto.publicado"
+                  class="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800"
+                >
+                  Rascunho
+                </span>
+              </div>
+            </td>
             <td class="px-6 py-3 text-wine-700">{{ produto.categoria ?? '—' }}</td>
             <td class="px-6 py-3">
               <div class="flex items-center gap-2">
@@ -280,6 +310,7 @@ interface ProdutoRow {
   nome: string
   descricao: string | null
   categoria: string | null
+  publicado: boolean
   foto: string | null
   variantes: VarianteDetalhe[]
 }
@@ -288,11 +319,13 @@ interface ProdutoInicialModal {
   nome: string
   descricao: string | null
   categoria: string | null
+  publicado: boolean
   capa?: { url: string } | null
   variantes?: ProdutoVarianteInicial[]
 }
 
 const busca = ref('')
+const filtroPublicacao = ref<'todos' | 'publicados' | 'rascunhos'>('todos')
 const expandidos = ref<Set<number>>(new Set())
 const modalAberto = ref(false)
 const modalEdicao = ref(false)
@@ -310,6 +343,7 @@ const { data: produtos, pending, error: queryError, refresh } = useAsyncData('pr
     nome: p.nome,
     descricao: p.descricao,
     categoria: p.categoria,
+    publicado: p.publicado,
     foto: p.capa,
     variantes: p.variantes.map((v) => ({
       id: v.id,
@@ -325,6 +359,16 @@ const loading = pending
 const error = computed(() => queryError.value?.message ?? null)
 
 const { filtrados } = useBuscaProdutos<ProdutoRow>(produtos, busca)
+
+const filtradosFinal = computed(() => {
+  if (filtroPublicacao.value === 'todos') {
+    return filtrados.value
+  }
+
+  const esperado = filtroPublicacao.value === 'publicados'
+
+  return filtrados.value.filter((produto) => produto.publicado === esperado)
+})
 
 function resumoVariantes(produto: ProdutoRow): string {
   const total = produto.variantes.length
@@ -362,6 +406,7 @@ async function handleEditar(produto: ProdutoRow) {
       nome: detalhe.nome,
       descricao: detalhe.descricao,
       categoria: detalhe.categoria,
+      publicado: detalhe.publicado,
       capa: detalhe.capa ? { url: detalhe.capa } : null,
       variantes: detalhe.variantes.map((v) => ({
         id: v.id,
@@ -447,6 +492,15 @@ async function handleSalvo(payload: ProdutoFormPayload) {
 
     if (payload.id) {
       await atualizar({ id: payload.id, ...dados })
+
+      const publicadoOriginal = modalInicial.value?.publicado ?? true
+      if (payload.publicado !== publicadoOriginal) {
+        await $fetch(`/api/admin/produtos/${payload.id}/publicacao`, {
+          method: 'PATCH',
+          body: { publicado: payload.publicado }
+        })
+      }
+
       toast.success('Produto atualizado com sucesso.')
     } else {
       await salvar(dados)

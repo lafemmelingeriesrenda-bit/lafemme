@@ -65,29 +65,82 @@
         </div>
       </dl>
 
-      <div v-if="compraInicial.tipo === 'mercadoria'" class="overflow-x-auto rounded-luxe border border-wine-100">
-        <table class="w-full text-left font-sans text-sm">
-          <thead class="border-b border-wine-100 bg-wine-50 text-xs uppercase tracking-wide text-wine-600">
-            <tr>
-              <th class="px-4 py-2 font-semibold">Descrição</th>
-              <th class="px-4 py-2 font-semibold">Cor</th>
-              <th class="px-4 py-2 font-semibold">Tam.</th>
-              <th class="px-4 py-2 font-semibold">Qtd.</th>
-              <th class="px-4 py-2 font-semibold">Unit.</th>
-              <th class="px-4 py-2 font-semibold">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in compraInicial.itens" :key="item.id" class="border-b border-wine-100 last:border-0">
-              <td class="px-4 py-2 text-ink">{{ item.descricao }}</td>
-              <td class="px-4 py-2 text-wine-700">{{ item.cor || '—' }}</td>
-              <td class="px-4 py-2 text-wine-700">{{ item.tamanho || '—' }}</td>
-              <td class="px-4 py-2 text-wine-700">{{ item.quantidade }}</td>
-              <td class="px-4 py-2 text-wine-700">{{ formatarMoeda(item.valor_unitario) }}</td>
-              <td class="px-4 py-2 font-medium text-brand">{{ formatarMoeda(item.subtotal) }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="compraInicial.tipo === 'mercadoria'" class="flex flex-col gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="font-sans text-sm text-wine-700">{{ resumoVinculo }}</span>
+          <span
+            v-if="itensNaoVinculados > 0"
+            class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800"
+          >
+            {{ itensNaoVinculados }} {{ itensNaoVinculados === 1 ? 'item precisa' : 'itens precisam' }} de vínculo
+          </span>
+        </div>
+
+        <div class="overflow-x-auto rounded-luxe border border-wine-100">
+          <table class="w-full text-left font-sans text-sm">
+            <thead class="border-b border-wine-100 bg-wine-50 text-xs uppercase tracking-wide text-wine-600">
+              <tr>
+                <th class="px-4 py-2 font-semibold">Descrição</th>
+                <th class="px-4 py-2 font-semibold">Cor</th>
+                <th class="px-4 py-2 font-semibold">Tam.</th>
+                <th class="px-4 py-2 font-semibold">Qtd.</th>
+                <th class="px-4 py-2 font-semibold">Unit.</th>
+                <th class="px-4 py-2 font-semibold">Subtotal</th>
+                <th class="px-4 py-2 font-semibold">Vínculo</th>
+                <th class="px-4 py-2 font-semibold">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in compraInicial.itens" :key="item.id" class="border-b border-wine-100 last:border-0">
+                <td class="px-4 py-2 text-ink">{{ item.descricao }}</td>
+                <td class="px-4 py-2 text-wine-700">{{ item.cor || '—' }}</td>
+                <td class="px-4 py-2 text-wine-700">{{ item.tamanho || '—' }}</td>
+                <td class="px-4 py-2 text-wine-700">{{ item.quantidade }}</td>
+                <td class="px-4 py-2 text-wine-700">{{ formatarMoeda(item.valor_unitario) }}</td>
+                <td class="px-4 py-2 font-medium text-brand">{{ formatarMoeda(item.subtotal) }}</td>
+                <td class="px-4 py-2">
+                  <span
+                    v-if="item.produto_variante_id"
+                    class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800"
+                  >
+                    Vinculado
+                  </span>
+                  <span v-else class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                    Produto não vinculado
+                  </span>
+                </td>
+                <td class="px-4 py-2">
+                  <div class="flex flex-wrap gap-2">
+                    <template v-if="!item.produto_variante_id">
+                      <BaseButton
+                        :id="`modal-compra-item-${item.id}-vincular`"
+                        label="Vincular"
+                        variant="outline"
+                        size="sm"
+                        @click="emit('vincular-item', item)"
+                      />
+                      <BaseButton
+                        :id="`modal-compra-item-${item.id}-cadastrar`"
+                        label="Cadastrar"
+                        variant="ghost"
+                        size="sm"
+                        @click="emit('cadastrar-produto-item', item)"
+                      />
+                    </template>
+                    <BaseButton
+                      v-else-if="statusAtual === 'pendente'"
+                      :id="`modal-compra-item-${item.id}-desvincular`"
+                      label="Desvincular"
+                      variant="ghost"
+                      size="sm"
+                      @click="emit('desvincular-item', item)"
+                    />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="flex flex-col gap-1 rounded-luxe bg-wine-50 px-4 py-3 font-sans text-sm">
@@ -336,6 +389,7 @@ import type { AdminProdutoLista } from '~/types/produto-admin'
 import type {
   CompraAtualizarPayload,
   CompraDetalhadaAdmin,
+  ItemCompraAdmin,
   ItemCompraPayload,
   StatusCompra,
   StatusPagamentoCompra,
@@ -369,6 +423,9 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   fechar: []
   salvo: [payload: CompraAtualizarPayload]
+  'vincular-item': [item: ItemCompraAdmin]
+  'desvincular-item': [item: ItemCompraAdmin]
+  'cadastrar-produto-item': [item: ItemCompraAdmin]
 }>()
 
 const fornecedores = ref<AdminFornecedor[]>([])
@@ -420,6 +477,22 @@ const titulo = computed(() => {
 const statusAtual = computed<StatusCompra>(() => props.compraInicial?.status ?? 'pendente')
 const edicaoFisicaPermitida = computed(() => props.modo === 'criar' || statusAtual.value === 'pendente')
 const edicaoFinanceiraPermitida = computed(() => props.modo !== 'ver' && statusAtual.value !== 'cancelada')
+
+const itensNaoVinculados = computed(
+  () => props.compraInicial?.itens.filter((item) => !item.produto_variante_id).length ?? 0
+)
+
+const resumoVinculo = computed(() => {
+  const itens = props.compraInicial?.itens ?? []
+
+  if (itens.length === 0) {
+    return 'Nenhum item'
+  }
+
+  const vinculados = itens.filter((item) => item.produto_variante_id).length
+
+  return `${vinculados} de ${itens.length} ${itens.length === 1 ? 'item vinculado' : 'itens vinculados'}`
+})
 
 const fornecedoresOpcoes = computed(() => {
   const opcoes = [...fornecedores.value]

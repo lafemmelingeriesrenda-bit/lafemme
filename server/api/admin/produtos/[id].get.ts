@@ -28,7 +28,7 @@ export default defineEventHandler(async (event): Promise<AdminProdutoDetalhe> =>
 
   const { data: produto, error: erroProduto } = await admin
     .from('produtos')
-    .select('id, nome, descricao, categoria, slug')
+    .select('id, nome, descricao, categoria, slug, publicado')
     .eq('id', id)
     .maybeSingle()
 
@@ -87,6 +87,7 @@ export default defineEventHandler(async (event): Promise<AdminProdutoDetalhe> =>
     descricao: produto.descricao,
     categoria: produto.categoria,
     slug: produto.slug,
+    publicado: produto.publicado as boolean,
     capa,
     variantes: variantes.map((v) => ({
       id: v.id,

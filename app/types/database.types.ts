@@ -424,6 +424,7 @@ export interface Database {
           slug: string | null
           descricao: string | null
           categoria: string | null
+          publicado: boolean
           created_at: string | null
           updated_at: string | null
         }
@@ -433,6 +434,7 @@ export interface Database {
           slug?: string | null
           descricao?: string | null
           categoria?: string | null
+          publicado?: boolean
           created_at?: string | null
           updated_at?: string | null
         }
@@ -442,6 +444,7 @@ export interface Database {
           slug?: string | null
           descricao?: string | null
           categoria?: string | null
+          publicado?: boolean
           created_at?: string | null
           updated_at?: string | null
         }
@@ -502,6 +505,13 @@ export interface Database {
       }
     }
     Functions: {
+      admin_alterar_publicacao_produto: {
+        Args: {
+          p_id: number
+          p_publicado: boolean
+        }
+        Returns: Json
+      }
       admin_alterar_status_compra: {
         Args: {
           p_id: number
@@ -562,6 +572,19 @@ export interface Database {
         }
         Returns: Json
       }
+      admin_criar_produto_rascunho_item_compra: {
+        Args: {
+          p_item_id: number
+          p_dados: Json
+        }
+        Returns: Json
+      }
+      admin_desvincular_item_compra_variante: {
+        Args: {
+          p_item_id: number
+        }
+        Returns: Json
+      }
       admin_excluir_produto: {
         Args: {
           p_id: number
@@ -619,6 +642,13 @@ export interface Database {
       admin_relatorio_vendas: {
         Args: {
           p_filtros?: Json | null
+        }
+        Returns: Json
+      }
+      admin_vincular_item_compra_variante: {
+        Args: {
+          p_item_id: number
+          p_variante_id: number
         }
         Returns: Json
       }

@@ -37,6 +37,15 @@
           label="Categoria"
           placeholder="Categoria do produto"
         />
+
+        <label
+          v-if="isEdicao"
+          class="flex items-center gap-2 font-sans text-sm text-wine-800"
+        >
+          <input v-model="form.publicado" type="checkbox" class="h-4 w-4 accent-brand" />
+          Produto publicado (visível no catálogo)
+        </label>
+
         <BaseUpload
           v-model="form.capa"
           label="Imagem de capa"
@@ -215,6 +224,7 @@ export interface ProdutoFormPayload {
   nome: string
   descricao: string
   categoria: string
+  publicado: boolean
   capa: ItemImagem[]
   variantes: VarianteFormPayload[]
 }
@@ -239,6 +249,7 @@ interface Props {
     nome: string
     descricao: string | null
     categoria: string | null
+    publicado?: boolean
     capa?: { url: string } | null
     variantes?: ProdutoVarianteInicial[]
   } | null
@@ -263,12 +274,14 @@ const form = reactive<{
   nome: string
   descricao: string
   categoria: string
+  publicado: boolean
   capa: ItemImagem[]
   variantes: VarianteForm[]
 }>({
   nome: '',
   descricao: '',
   categoria: '',
+  publicado: true,
   capa: [],
   variantes: []
 })
@@ -334,6 +347,7 @@ watch(
     form.nome = props.produtoInicial?.nome ?? ''
     form.descricao = props.produtoInicial?.descricao ?? ''
     form.categoria = props.produtoInicial?.categoria ?? ''
+    form.publicado = props.produtoInicial?.publicado ?? true
     form.capa = props.produtoInicial?.capa?.url
       ? [itemImagemUrl(props.produtoInicial.capa.url)]
       : []
@@ -383,6 +397,7 @@ function handleProximoOuSalvar() {
     nome: form.nome.trim(),
     descricao: form.descricao.trim(),
     categoria: form.categoria.trim(),
+    publicado: form.publicado,
     capa: form.capa,
     variantes: form.variantes.map((v) => ({
       id: v.id,
