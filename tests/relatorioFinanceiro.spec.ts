@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import {
+  calcularTicketMedio,
   classificarVencimento,
+  combinarEvolucaoMensal,
   completarMeses,
+  completarMesesVendas,
   formatarMesLabel,
   formatarMoedaCompacta,
   nomeFornecedor,
   resolverPeriodo
 } from '../app/utils/relatorioFinanceiro'
-import type { EvolucaoMensalFinanceira } from '../app/types/relatorio-financeiro'
+import type { EvolucaoMensalFinanceira, EvolucaoVendaMensal } from '../app/types/relatorio-financeiro'
 
 function mes(mes: string, total: number): EvolucaoMensalFinanceira {
   return { mes, total, mercadorias: total, despesas: 0, pago: 0, pendente: total }
+}
+
+function mesVenda(mes: string, receita: number, pedidos = 1): EvolucaoVendaMensal {
+  return { mes, receita, quantidade_pedidos: pedidos, ticket_medio: pedidos > 0 ? receita / pedidos : 0 }
 }
 
 describe('relatorioFinanceiro — resolverPeriodo', () => {
@@ -90,5 +97,47 @@ describe('relatorioFinanceiro — formatação e labels', () => {
   it('formata moeda compacta', () => {
     expect(formatarMoedaCompacta(0)).toContain('R$')
     expect(formatarMoedaCompacta(1500)).toContain('R$')
+  })
+})
+
+describe('relatorioFinanceiro — vendas', () => {
+  it('calcula ticket médio e trata divisão por zero', () => {
+    expect(calcularTicketMedio(900, 3)).toBe(300)
+    expect(calcularTicketMedio(100, 3)).toBe(33.33)
+    expect(calcularTicketMedio(500, 0)).toBe(0)
+    expect(calcularTicketMedio(0, 0)).toBe(0)
+  })
+
+  it('preenche meses sem venda com zero', () => {
+    const resultado = completarMesesVendas([mesVenda('2026-09', 300, 2)], '2026-07-01', '2026-09-30')
+
+    expect(resultado.map((item) => item.mes)).toEqual(['2026-07', '2026-08', '2026-09'])
+    expect(resultado[0]).toEqual({ mes: '2026-07', receita: 0, quantidade_pedidos: 0, ticket_medio: 0 })
+    expect(resultado[2].receita).toBe(300)
+    expect(resultado[2].ticket_medio).toBe(150)
+  })
+
+  it('devolve a série original quando as datas são inválidas', () => {
+    const serie = [mesVenda('2026-09', 100)]
+    expect(completarMesesVendas(serie, '', '')).toBe(serie)
+  })
+})
+
+describe('relatorioFinanceiro — comparação receita x gastos', () => {
+  it('alinha meses de vendas e gastos preenchendo zero', () => {
+    const resultado = combinarEvolucaoMensal(
+      [mesVenda('2026-09', 900, 3)],
+      [mes('2026-08', 100)],
+      '2026-08-01',
+      '2026-09-30'
+    )
+
+    expect(resultado.map((item) => item.mes)).toEqual(['2026-08', '2026-09'])
+    expect(resultado[0]).toEqual({ mes: '2026-08', receita: 0, mercadorias: 100, despesas: 0 })
+    expect(resultado[1]).toEqual({ mes: '2026-09', receita: 900, mercadorias: 0, despesas: 0 })
+  })
+
+  it('retorna série vazia quando não há período válido nem dados', () => {
+    expect(combinarEvolucaoMensal([], [], '', '')).toEqual([])
   })
 })

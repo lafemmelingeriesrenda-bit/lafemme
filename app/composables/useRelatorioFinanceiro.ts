@@ -1,4 +1,4 @@
-import type { FiltrosRelatorioFinanceiro, RelatorioFinanceiro } from '~/types/relatorio-financeiro'
+import type { FiltrosRelatorioFinanceiro, RelatorioFinanceiroCompleto } from '~/types/relatorio-financeiro'
 
 const MENSAGEM_FALHA = 'Não foi possível carregar o relatório. Tente novamente em instantes.'
 
@@ -22,18 +22,22 @@ function extrairMensagem(dados: unknown, fallback: string): string {
   return fallback
 }
 
-function ehRelatorio(dados: unknown): dados is RelatorioFinanceiro {
+function ehRelatorio(dados: unknown): dados is RelatorioFinanceiroCompleto {
   return (
     typeof dados === 'object' &&
     dados !== null &&
-    typeof (dados as RelatorioFinanceiro).resumo === 'object' &&
-    (dados as RelatorioFinanceiro).resumo !== null &&
-    Array.isArray((dados as RelatorioFinanceiro).evolucao_mensal)
+    typeof (dados as RelatorioFinanceiroCompleto).resumo === 'object' &&
+    (dados as RelatorioFinanceiroCompleto).resumo !== null &&
+    Array.isArray((dados as RelatorioFinanceiroCompleto).evolucao_mensal) &&
+    typeof (dados as RelatorioFinanceiroCompleto).vendas === 'object' &&
+    (dados as RelatorioFinanceiroCompleto).vendas !== null &&
+    typeof (dados as RelatorioFinanceiroCompleto).vendas.resumo === 'object' &&
+    Array.isArray((dados as RelatorioFinanceiroCompleto).vendas.evolucao_mensal)
   )
 }
 
 export function useRelatorioFinanceiro() {
-  async function obterRelatorio(filtros: FiltrosRelatorioFinanceiro): Promise<RelatorioFinanceiro> {
+  async function obterRelatorio(filtros: FiltrosRelatorioFinanceiro): Promise<RelatorioFinanceiroCompleto> {
     const params = new URLSearchParams()
 
     if (filtros.dataInicio) {
@@ -45,7 +49,7 @@ export function useRelatorioFinanceiro() {
     }
 
     const query = params.toString()
-    const resposta = await $fetch.raw<RelatorioFinanceiro>(
+    const resposta = await $fetch.raw<RelatorioFinanceiroCompleto>(
       `/api/admin/relatorios/financeiro${query ? `?${query}` : ''}`,
       { ignoreResponseError: true }
     )

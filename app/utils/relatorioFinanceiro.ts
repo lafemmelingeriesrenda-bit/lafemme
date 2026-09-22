@@ -1,7 +1,9 @@
 import { dataHojeLocal } from '~/utils/compraAdmin'
 import type {
   ClassificacaoVencimento,
+  ComparacaoMensalReceitaGastos,
   EvolucaoMensalFinanceira,
+  EvolucaoVendaMensal,
   PresetPeriodo
 } from '~/types/relatorio-financeiro'
 
@@ -140,6 +142,76 @@ export function completarMeses(
   }
 
   return resultado
+}
+
+export function completarMesesVendas(
+  vendas: EvolucaoVendaMensal[],
+  dataInicio: string,
+  dataFim: string
+): EvolucaoVendaMensal[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataInicio) || !/^\d{4}-\d{2}-\d{2}$/.test(dataFim)) {
+    return vendas
+  }
+
+  const porMes = new Map(vendas.map((item) => [item.mes, item]))
+  const resultado: EvolucaoVendaMensal[] = []
+
+  let ano = Number(dataInicio.slice(0, 4))
+  let mes = Number(dataInicio.slice(5, 7))
+  const anoFim = Number(dataFim.slice(0, 4))
+  const mesFim = Number(dataFim.slice(5, 7))
+
+  while (ano < anoFim || (ano === anoFim && mes <= mesFim)) {
+    const chave = `${ano}-${pad2(mes)}`
+
+    resultado.push(
+      porMes.get(chave) ?? {
+        mes: chave,
+        receita: 0,
+        quantidade_pedidos: 0,
+        ticket_medio: 0
+      }
+    )
+
+    mes += 1
+
+    if (mes > 12) {
+      mes = 1
+      ano += 1
+    }
+  }
+
+  return resultado
+}
+
+export function calcularTicketMedio(receita: number, quantidade: number): number {
+  if (!Number.isFinite(receita) || !Number.isFinite(quantidade) || quantidade <= 0) {
+    return 0
+  }
+
+  return Number((receita / quantidade).toFixed(2))
+}
+
+export function combinarEvolucaoMensal(
+  vendas: EvolucaoVendaMensal[],
+  gastos: EvolucaoMensalFinanceira[],
+  dataInicio: string,
+  dataFim: string
+): ComparacaoMensalReceitaGastos[] {
+  const mesesBase = completarMeses(gastos, dataInicio, dataFim)
+  const receitaPorMes = new Map(vendas.map((item) => [item.mes, item.receita]))
+  const gastosPorMes = new Map(mesesBase.map((item) => [item.mes, item]))
+
+  return mesesBase.map((item) => {
+    const gasto = gastosPorMes.get(item.mes)
+
+    return {
+      mes: item.mes,
+      receita: receitaPorMes.get(item.mes) ?? 0,
+      mercadorias: gasto?.mercadorias ?? 0,
+      despesas: gasto?.despesas ?? 0
+    }
+  })
 }
 
 export function formatarMesLabel(mes: string): string {

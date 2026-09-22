@@ -329,6 +329,7 @@ export interface Database {
           observacoes: string | null
           created_at: string
           updated_at: string
+          finalizado_em: string | null
         }
         Insert: {
           id?: number
@@ -342,6 +343,7 @@ export interface Database {
           observacoes?: string | null
           created_at?: string
           updated_at?: string
+          finalizado_em?: string | null
         }
         Update: {
           id?: number
@@ -355,6 +357,7 @@ export interface Database {
           observacoes?: string | null
           created_at?: string
           updated_at?: string
+          finalizado_em?: string | null
         }
         Relationships: [
           {
@@ -608,6 +611,12 @@ export interface Database {
         Returns: Json
       }
       admin_relatorio_financeiro_compras: {
+        Args: {
+          p_filtros?: Json | null
+        }
+        Returns: Json
+      }
+      admin_relatorio_vendas: {
         Args: {
           p_filtros?: Json | null
         }

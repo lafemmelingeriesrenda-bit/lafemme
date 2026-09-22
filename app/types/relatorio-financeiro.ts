@@ -65,6 +65,36 @@ export interface FiltrosRelatorioFinanceiro {
   dataFim?: string | null
 }
 
+export interface ResumoVendas {
+  receita: number
+  quantidade_pedidos: number
+  ticket_medio: number
+}
+
+export interface EvolucaoVendaMensal {
+  mes: string
+  receita: number
+  quantidade_pedidos: number
+  ticket_medio: number
+}
+
+export interface RelatorioVendas {
+  periodo: PeriodoRelatorio
+  resumo: ResumoVendas
+  evolucao_mensal: EvolucaoVendaMensal[]
+}
+
+export interface RelatorioFinanceiroCompleto extends RelatorioFinanceiro {
+  vendas: RelatorioVendas
+}
+
+export interface ComparacaoMensalReceitaGastos {
+  mes: string
+  receita: number
+  mercadorias: number
+  despesas: number
+}
+
 export type PresetPeriodo =
   | 'mes-atual'
   | 'mes-anterior'
