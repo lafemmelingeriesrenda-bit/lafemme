@@ -280,6 +280,117 @@ export function urlPublicaBucket(supabaseUrl: string, caminho: string): string {
   return `${base}/storage/v1/object/public/${BUCKET_LA_FEMME_ENCODED}/${caminho}`
 }
 
+// ============================================================
+// Thumbnails derivados do catálogo
+// ============================================================
+// Convenção determinística (sem alterar banco):
+//   original  -> produtos/abc.jpg
+//   thumbnail -> produtos/thumbs/abc.webp
+//   original (legado, raiz) -> abc.jpg
+//   thumbnail (legado)      -> thumbs/abc.webp
+export const SUFIXO_THUMB = '.webp'
+export const PASTA_THUMBS = 'thumbs'
+
+export function ehCaminhoThumb(caminho: string): boolean {
+  return caminho.split('/').includes(PASTA_THUMBS)
+}
+
+/**
+ * Deriva o caminho do thumbnail a partir do caminho do original.
+ * Idempotente: um caminho já em `thumbs/` retorna ele mesmo.
+ */
+export function caminhoThumbStorage(caminho: string): string {
+  if (ehCaminhoThumb(caminho)) {
+    return caminho
+  }
+
+  const barra = caminho.lastIndexOf('/')
+  const dir = barra === -1 ? '' : caminho.slice(0, barra)
+  const arquivo = barra === -1 ? caminho : caminho.slice(barra + 1)
+  const base = arquivo.replace(/\.[^./]+$/, '')
+  const thumbArquivo = `${base}${SUFIXO_THUMB}`
+
+  return dir === '' ? `${PASTA_THUMBS}/${thumbArquivo}` : `${dir}/${PASTA_THUMBS}/${thumbArquivo}`
+}
+
+/**
+ * Extrai o caminho de um objeto do bucket a partir da URL pública,
+ * de forma TOLERANTE (aceita nomes legados com espaços, que o parser
+ * estrito `parsearUrlStorage` rejeita). Exige mesmo host e mesmo bucket.
+ * Devolve null para URLs externas/inválidas.
+ */
+function caminhoImagemBucket(url: string, supabaseUrl: string): string | null {
+  let host: string
+  let hostBase: string
+
+  try {
+    host = new URL(url).host
+    hostBase = new URL(supabaseUrl).host
+  } catch {
+    return null
+  }
+
+  if (host !== hostBase) {
+    return null
+  }
+
+  const marcador = '/storage/v1/object/public/'
+  const indice = url.indexOf(marcador)
+
+  if (indice === -1) {
+    return null
+  }
+
+  const resto = url.slice(indice + marcador.length)
+  const barra = resto.indexOf('/')
+
+  if (barra === -1) {
+    return null
+  }
+
+  let bucket: string
+  let caminho: string
+
+  try {
+    bucket = decodeURIComponent(resto.slice(0, barra))
+    caminho = decodeURIComponent(resto.slice(barra + 1))
+  } catch {
+    return null
+  }
+
+  if (bucket !== BUCKET_LA_FEMME) {
+    return null
+  }
+
+  caminho = caminho.replace(/[?#].*$/, '')
+
+  if (caminho.length === 0 || caminho.startsWith('/') || caminho.includes('..')) {
+    return null
+  }
+
+  return caminho
+}
+
+/**
+ * URL do thumbnail de catálogo a partir da URL original.
+ *   - URL de outro host/bucket (ou inválida) -> devolvida sem alteração;
+ *   - URL que já é thumbnail -> devolvida sem alteração;
+ *   - URL válida do bucket -> URL pública do thumbnail.
+ */
+export function obterImagemCatalogo(url: string | null | undefined, supabaseUrl: string): string {
+  if (typeof url !== 'string' || url.length === 0) {
+    return ''
+  }
+
+  const caminho = caminhoImagemBucket(url, supabaseUrl)
+
+  if (caminho === null || ehCaminhoThumb(caminho)) {
+    return url
+  }
+
+  return urlPublicaBucket(supabaseUrl, caminhoThumbStorage(caminho))
+}
+
 export interface VariantePayloadValidada {
   id: number | null
   cor: string | null

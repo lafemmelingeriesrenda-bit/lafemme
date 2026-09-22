@@ -108,10 +108,12 @@
 
       <div v-else class="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
         <ProductCard
-          v-for="produto in produtosFiltrados"
+          v-for="(produto, index) in produtosFiltrados"
           :key="`${produto.produtoId}|${produto.cor ?? ''}|${produto.foto ?? ''}`"
           :produto="produto"
-          :src="produto.foto ?? ''"
+          :src="imagemCatalogo(produto.foto)"
+          :src-fallback="produto.foto ?? ''"
+          :priority="index === 0"
           :name="produto.nome"
           :variantes="produto.variantes"
           @add-to-cart="handleAddToCart"
@@ -135,9 +137,16 @@ import {
   tamanhosDisponiveis,
   type OrdenacaoCatalogo
 } from '~/utils/filtrarCatalogo'
+import { obterImagemCatalogo } from '~/utils/produtoAdmin'
 
 const { produtos, loading, error } = useProdutos()
 const { adicionar } = useCarrinho()
+
+const supabaseUrl = useRuntimeConfig().public.supabase.url as string
+
+function imagemCatalogo(foto: string | null): string {
+  return obterImagemCatalogo(foto, supabaseUrl)
+}
 
 const busca = ref('')
 const categoria = ref('')

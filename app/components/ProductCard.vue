@@ -6,13 +6,17 @@
       class="flex h-56 items-center justify-center overflow-hidden bg-wine-50"
     >
       <img
-        v-if="src"
+        v-if="srcAtual"
         id="product-card-image"
-        :src="src"
+        :src="srcAtual"
         :alt="name"
-        loading="lazy"
+        :loading="priority ? 'eager' : 'lazy'"
+        :fetchpriority="priority ? 'high' : 'auto'"
         decoding="async"
+        width="600"
+        height="800"
         class="h-full w-full cursor-pointer object-cover"
+        @error="onImageError"
       />
       <span
         v-else
@@ -91,17 +95,39 @@ interface Variante {
 interface Props {
   produto: ProdutoCard
   src?: string
+  srcFallback?: string
+  priority?: boolean
   name: string
   variantes: Variante[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  src: ''
+  src: '',
+  srcFallback: '',
+  priority: false
 })
 
 const emit = defineEmits<{
   'add-to-cart': [varianteId: number]
 }>()
+
+const srcAtual = ref(props.src)
+let fallbackAplicado = false
+
+watch(
+  () => props.src,
+  (novo) => {
+    srcAtual.value = novo
+    fallbackAplicado = false
+  }
+)
+
+function onImageError() {
+  if (!fallbackAplicado && props.srcFallback && props.srcFallback !== srcAtual.value) {
+    fallbackAplicado = true
+    srcAtual.value = props.srcFallback
+  }
+}
 
 const selected = ref<Variante | null>(props.variantes.find((variante) => variante.disponivel) ?? null)
 

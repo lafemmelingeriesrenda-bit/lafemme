@@ -1,19 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '~/types/database.types'
-import { BUCKET_LA_FEMME, storagePathDaUrl } from '~/utils/produtoAdmin'
+import { BUCKET_LA_FEMME, caminhoThumbStorage, storagePathDaUrl } from '~/utils/produtoAdmin'
 
 export async function removerArquivosStorage(
   admin: SupabaseClient<Database>,
   urls: Array<string | null | undefined>,
   supabaseUrl: string
 ): Promise<void> {
-  const caminhos = [
+  const originais = [
     ...new Set(
       urls
         .map((url) => storagePathDaUrl(url ?? '', supabaseUrl))
         .filter((caminho): caminho is string => caminho !== null)
     )
   ]
+
+  // Remove também o thumbnail derivado de cada original.
+  const caminhos = [...new Set([...originais, ...originais.map(caminhoThumbStorage)])]
 
   if (caminhos.length === 0) {
     return

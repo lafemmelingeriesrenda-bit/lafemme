@@ -287,7 +287,21 @@ describe('removerArquivosStorage', () => {
 
     expect(mock._remocoes).toHaveLength(1)
     expect(mock._remocoes[0]?.bucket).toBe(BUCKET_LA_FEMME)
-    expect(mock._remocoes[0]?.caminhos).toEqual(['produtos/repetida.jpg'])
+    expect(mock._remocoes[0]?.caminhos).toEqual([
+      'produtos/repetida.jpg',
+      'produtos/thumbs/repetida.webp'
+    ])
+  })
+
+  it('remove também o thumbnail derivado', async () => {
+    const admin = criarAdminMock(() => ({ data: [], error: null }))
+    const mock = admin as unknown as {
+      _remocoes: ChamadaStorageRemove[]
+    }
+
+    await removerArquivosStorage(admin as never, [urlBucket('produtos/foto.png')], SUPABASE_URL)
+
+    expect(mock._remocoes[0]?.caminhos).toEqual(['produtos/foto.png', 'produtos/thumbs/foto.webp'])
   })
 
   it('não chama o Storage quando não há caminhos válidos', async () => {

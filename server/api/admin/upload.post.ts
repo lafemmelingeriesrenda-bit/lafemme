@@ -1,6 +1,16 @@
+import sharp from 'sharp'
 import { requireAdmin } from '../../utils/requireAdmin'
-import { BUCKET_LA_FEMME, validarArquivoUpload, urlPublicaBucket } from '~/utils/produtoAdmin'
+import {
+  BUCKET_LA_FEMME,
+  caminhoThumbStorage,
+  validarArquivoUpload,
+  urlPublicaBucket
+} from '~/utils/produtoAdmin'
 import type { AdminUploadResposta } from '~/types/produto-admin'
+
+const LARGURA_THUMB = 600
+const ALTURA_THUMB = 800
+const QUALIDADE_THUMB = 78
 
 export default defineEventHandler(async (event): Promise<AdminUploadResposta> => {
   const { admin } = await requireAdmin(event)
@@ -35,6 +45,37 @@ export default defineEventHandler(async (event): Promise<AdminUploadResposta> =>
   }
 
   const supabaseUrl = useRuntimeConfig().public.supabase.url as string
+
+  // Thumbnail derivado (WebP) para o catálogo. Em falha, remove o
+  // original para não deixar o Storage em estado incoerente.
+  try {
+    const thumbBuffer = await sharp(arquivo.data)
+      .rotate()
+      .resize({
+        width: LARGURA_THUMB,
+        height: ALTURA_THUMB,
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .webp({ quality: QUALIDADE_THUMB })
+      .toBuffer()
+
+    const { error: erroThumb } = await admin.storage
+      .from(BUCKET_LA_FEMME)
+      .upload(caminhoThumbStorage(caminho), thumbBuffer, {
+        contentType: 'image/webp',
+        cacheControl: '31536000',
+        upsert: false
+      })
+
+    if (erroThumb) {
+      throw new Error(erroThumb.message)
+    }
+  } catch (erro) {
+    await admin.storage.from(BUCKET_LA_FEMME).remove([caminho])
+    console.error('[admin/upload] falha ao gerar thumbnail:', erro instanceof Error ? erro.message : String(erro))
+    throw createError({ statusCode: 500, statusMessage: 'Falha ao processar a imagem.' })
+  }
 
   return {
     url: urlPublicaBucket(supabaseUrl, caminho),
