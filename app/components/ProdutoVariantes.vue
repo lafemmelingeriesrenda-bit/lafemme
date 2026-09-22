@@ -15,6 +15,15 @@
       <span class="font-sans text-xs text-wine-600">
         {{ variante.cor ?? 'Sem cor' }} · Qtd: {{ variante.quantidade }}
       </span>
+      <button
+        v-if="ajustavel"
+        :id="`variante-ajustar-${variante.id}`"
+        type="button"
+        class="mt-1 self-start rounded-luxe border border-wine-200 px-2.5 py-1 font-sans text-xs font-medium text-wine-700 transition hover:border-brand hover:text-brand"
+        @click="emit('ajustar', variante)"
+      >
+        Ajustar estoque
+      </button>
     </div>
   </div>
   <p v-else class="font-sans text-sm text-wine-500">
@@ -32,9 +41,16 @@ interface VarianteResumo {
 
 interface Props {
   variantes: VarianteResumo[]
+  ajustavel?: boolean
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props>(), {
+  ajustavel: false
+})
+
+const emit = defineEmits<{
+  ajustar: [variante: VarianteResumo]
+}>()
 
 defineOptions({ name: 'ProdutoVariantes' })
 </script>

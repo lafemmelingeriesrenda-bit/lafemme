@@ -326,6 +326,7 @@ export interface Database {
           item_compra_id: number | null
           pedido_id: number | null
           item_pedido_id: number | null
+          motivo: string | null
           observacao: string | null
           created_at: string
         }
@@ -338,6 +339,7 @@ export interface Database {
           item_compra_id?: number | null
           pedido_id?: number | null
           item_pedido_id?: number | null
+          motivo?: string | null
           observacao?: string | null
           created_at?: string
         }
@@ -350,6 +352,7 @@ export interface Database {
           item_compra_id?: number | null
           pedido_id?: number | null
           item_pedido_id?: number | null
+          motivo?: string | null
           observacao?: string | null
           created_at?: string
         }
@@ -607,6 +610,16 @@ export interface Database {
         Args: {
           p_id: number
           p_dados: Json
+        }
+        Returns: Json
+      }
+      admin_ajustar_estoque_variante: {
+        Args: {
+          p_variante_id: number
+          p_nova_quantidade: number
+          p_motivo: string
+          p_observacao?: string | null
+          p_quantidade_esperada?: number | null
         }
         Returns: Json
       }

@@ -105,10 +105,14 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <BaseInput
                 v-model="variante.quantidade"
-                label="Quantidade"
+                label="Quantidade (somente leitura)"
                 type="number"
                 min="0"
+                disabled
               />
+              <p class="self-end pb-2 font-sans text-xs text-wine-500">
+                O estoque é ajustado pela ação "Ajustar estoque" (com motivo e histórico).
+              </p>
             </div>
 
             <div>

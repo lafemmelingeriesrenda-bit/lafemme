@@ -132,7 +132,7 @@
             v-if="expandidos.has(produto.id)"
             class="mt-3 border-t border-wine-100 pt-3"
           >
-            <ProdutoVariantes :variantes="produto.variantes" />
+            <ProdutoVariantes :variantes="produto.variantes" ajustavel @ajustar="(v) => abrirAjuste(produto, v)" />
           </div>
         </article>
       </div>
@@ -222,7 +222,7 @@
             class="border-b border-wine-100 last:border-0"
           >
             <td :colspan="5" class="bg-wine-50/50 px-6 py-4">
-              <ProdutoVariantes :variantes="produto.variantes" />
+              <ProdutoVariantes :variantes="produto.variantes" ajustavel @ajustar="(v) => abrirAjuste(produto, v)" />
             </td>
           </tr>
           </template>
@@ -272,6 +272,14 @@
         />
       </template>
     </BaseModal>
+
+    <ModalAjustarEstoque
+      :aberto="ajusteAberto"
+      :variante="varianteAjuste"
+      :salvando="ajustando"
+      @fechar="ajusteAberto = false"
+      @salvo="confirmarAjuste"
+    />
   </main>
 </template>
 
@@ -288,11 +296,15 @@ import { toast } from 'vue-sonner'
 import AdminHeader from '~/components/AdminHeader.vue'
 import BaseButton from '~/components/BaseButton.vue'
 import BaseModal from '~/components/BaseModal.vue'
+import ModalAjustarEstoque from '~/components/ModalAjustarEstoque.vue'
+import type { VarianteAjusteInfo } from '~/components/ModalAjustarEstoque.vue'
 import ModalProduto from '~/components/ModalProduto.vue'
 import type { ProdutoFormPayload, ProdutoVarianteInicial } from '~/components/ModalProduto.vue'
 import ProdutoVariantes from '~/components/ProdutoVariantes.vue'
+import { useAjustarEstoque } from '~/composables/useAjustarEstoque'
 import { useBuscaProdutos } from '~/composables/useBuscaProdutos'
 import { useSalvarProduto } from '~/composables/useSalvarProduto'
+import type { AjusteEstoquePayload } from '~/types/estoque-admin'
 import type { AdminProdutoDetalhe, AdminProdutoLista } from '~/types/produto-admin'
 
 definePageMeta({ layout: 'layout-principal', middleware: 'admin' })
@@ -334,6 +346,10 @@ const modalInicial = ref<ProdutoInicialModal | null>(null)
 const salvando = ref(false)
 const produtoParaExcluir = ref<ProdutoRow | null>(null)
 const excluindo = ref(false)
+
+const varianteAjuste = ref<VarianteAjusteInfo | null>(null)
+const ajusteAberto = ref(false)
+const ajustando = ref(false)
 
 const { data: produtos, pending, error: queryError, refresh } = useAsyncData('produtos_admin', async () => {
   const lista = await $fetch<AdminProdutoLista[]>('/api/admin/produtos')
@@ -514,6 +530,44 @@ async function handleSalvo(payload: ProdutoFormPayload) {
     toast.error(mensagem)
   } finally {
     salvando.value = false
+  }
+}
+
+function abrirAjuste(
+  produto: ProdutoRow,
+  variante: { id: number; cor: string | null; tamanho: string; quantidade: number }
+) {
+  varianteAjuste.value = {
+    id: variante.id,
+    produtoNome: produto.nome,
+    cor: variante.cor,
+    tamanho: variante.tamanho,
+    quantidade: variante.quantidade
+  }
+  ajusteAberto.value = true
+}
+
+async function confirmarAjuste(payload: AjusteEstoquePayload) {
+  const variante = varianteAjuste.value
+
+  if (!variante || ajustando.value) {
+    return
+  }
+
+  ajustando.value = true
+
+  try {
+    const { ajustar } = useAjustarEstoque()
+    const resultado = await ajustar(variante.id, payload)
+    toast.success(
+      `Estoque ajustado de ${resultado.quantidade_anterior} para ${resultado.quantidade_nova} unidades.`
+    )
+    ajusteAberto.value = false
+    await refresh()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível ajustar o estoque.')
+  } finally {
+    ajustando.value = false
   }
 }
 
