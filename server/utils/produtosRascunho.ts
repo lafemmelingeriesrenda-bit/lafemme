@@ -14,8 +14,18 @@ export function lancarErroRpcRascunhoProduto(
       throw createError({ statusCode: 409, statusMessage: 'Compra cancelada não pode ser alterada.' })
     case 'COMPRA_JA_RECEBIDA':
       throw createError({ statusCode: 409, statusMessage: resposta.erro })
+    case 'ITENS_NAO_VINCULADOS':
+      throw createError({ statusCode: 409, statusMessage: resposta.erro })
+    case 'ENTRADA_DUPLICADA':
+      throw createError({ statusCode: 409, statusMessage: 'Esta compra já teve entrada no estoque.' })
+    case 'RECEBIMENTO_INVALIDO':
+    case 'TRANSICAO_INVALIDA':
+      throw createError({ statusCode: 409, statusMessage: resposta.erro })
     case 'VARIANTE_INEXISTENTE':
+    case 'VARIANTE_NAO_ENCONTRADA':
       throw createError({ statusCode: 400, statusMessage: 'Variante informada não encontrada.' })
+    case 'SEM_ITENS':
+    case 'ITEM_INVALIDO':
     case 'TIPO_INVALIDO':
     case 'PUBLICACAO_INVALIDA':
     case 'DADOS_INVALIDOS':

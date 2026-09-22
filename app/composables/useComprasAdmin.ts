@@ -183,6 +183,19 @@ export function useComprasAdmin() {
     }
   }
 
+  async function confirmarRecebimentoCompra(id: number): Promise<{ total_unidades: number }> {
+    const resposta = await $fetch.raw<{ total_unidades: number }>(`/api/admin/compras/${id}/receber`, {
+      method: 'POST',
+      ignoreResponseError: true
+    })
+
+    if (resposta.status >= 200 && resposta.status < 300 && resposta._data) {
+      return { total_unidades: Number(resposta._data.total_unidades ?? 0) }
+    }
+
+    throw new Error(extrairMensagem(resposta._data, MENSAGEM_FALHA))
+  }
+
   return {
     listarCompras,
     obterCompra,
@@ -191,6 +204,7 @@ export function useComprasAdmin() {
     alterarStatusCompra,
     vincularItemCompra,
     desvincularItemCompra,
-    criarProdutoRascunhoItemCompra
+    criarProdutoRascunhoItemCompra,
+    confirmarRecebimentoCompra
   }
 }

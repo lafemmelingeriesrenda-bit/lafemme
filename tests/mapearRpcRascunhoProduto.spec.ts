@@ -37,6 +37,28 @@ describe('mapearRespostaRpcRascunhoProduto', () => {
     }
   })
 
+  it('mapeia ITENS_NAO_VINCULADOS', () => {
+    const r = mapearRespostaRpcRascunhoProduto({
+      ok: false,
+      codigo: 'ITENS_NAO_VINCULADOS',
+      erro: 'Todos os itens precisam estar vinculados a uma variante antes da entrada no estoque.',
+      itens: [{ itemId: 1 }]
+    })
+    expect(r?.ok).toBe(false)
+    if (r && !r.ok) {
+      expect(r.codigo).toBe('ITENS_NAO_VINCULADOS')
+    }
+  })
+
+  it('mapeia ENTRADA_DUPLICADA', () => {
+    const r = mapearRespostaRpcRascunhoProduto({
+      ok: false,
+      codigo: 'ENTRADA_DUPLICADA',
+      erro: 'Já existe entrada de estoque para esta compra.'
+    })
+    expect(r?.ok).toBe(false)
+  })
+
   it('retorna null para código desconhecido', () => {
     expect(mapearRespostaRpcRascunhoProduto({ ok: false, codigo: 'X', erro: 'x' })).toBeNull()
   })

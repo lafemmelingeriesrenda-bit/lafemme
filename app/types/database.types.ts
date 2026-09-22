@@ -316,6 +316,76 @@ export interface Database {
           }
         ]
       }
+      movimentos_estoque: {
+        Row: {
+          id: number
+          produto_variante_id: number
+          tipo: string
+          quantidade: number
+          compra_id: number | null
+          item_compra_id: number | null
+          pedido_id: number | null
+          item_pedido_id: number | null
+          observacao: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          produto_variante_id: number
+          tipo: string
+          quantidade: number
+          compra_id?: number | null
+          item_compra_id?: number | null
+          pedido_id?: number | null
+          item_pedido_id?: number | null
+          observacao?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          produto_variante_id?: number
+          tipo?: string
+          quantidade?: number
+          compra_id?: number | null
+          item_compra_id?: number | null
+          pedido_id?: number | null
+          item_pedido_id?: number | null
+          observacao?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'movimentos_estoque_produto_variante_id_fkey'
+            columns: ['produto_variante_id']
+            referencedRelation: 'produto_variante'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'movimentos_estoque_compra_id_fkey'
+            columns: ['compra_id']
+            referencedRelation: 'compras'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'movimentos_estoque_item_compra_id_fkey'
+            columns: ['item_compra_id']
+            referencedRelation: 'itens_compra'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'movimentos_estoque_pedido_id_fkey'
+            columns: ['pedido_id']
+            referencedRelation: 'pedidos'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'movimentos_estoque_item_pedido_id_fkey'
+            columns: ['item_pedido_id']
+            referencedRelation: 'itens_pedido'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       pedidos: {
         Row: {
           id: number
@@ -551,6 +621,12 @@ export interface Database {
         Args: {
           p_id: number
           p_status: string
+        }
+        Returns: Json
+      }
+      admin_confirmar_recebimento_compra: {
+        Args: {
+          p_id: number
         }
         Returns: Json
       }

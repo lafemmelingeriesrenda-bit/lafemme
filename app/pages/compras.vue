@@ -94,7 +94,7 @@
       @novo="abrirNova"
       @ver="(compra) => abrirDetalhe(compra, 'ver')"
       @editar="(compra) => abrirDetalhe(compra, 'editar')"
-      @receber="(compra) => abrirStatus(compra, 'receber')"
+      @receber="abrirReceber"
       @cancelar="(compra) => abrirStatus(compra, 'cancelar')"
     />
 
@@ -117,6 +117,16 @@
       :carregando="alterandoStatus"
       @fechar="statusModalAberto = false"
       @confirmar="confirmarStatus"
+    />
+
+    <ModalReceberCompra
+      :aberto="receberAberto"
+      :compra="compraReceber"
+      :carregando="confirmandoRecebimento"
+      @fechar="receberAberto = false"
+      @confirmar="confirmarRecebimento"
+      @vincular-item="abrirVincular"
+      @cadastrar-produto-item="abrirCadastrar"
     />
 
     <ModalVincularProdutoItem
@@ -146,6 +156,7 @@ import ModalCompra from '~/components/ModalCompra.vue'
 import type { ModoModalCompra } from '~/components/ModalCompra.vue'
 import ModalConfirmarStatusCompra from '~/components/ModalConfirmarStatusCompra.vue'
 import type { AcaoStatusCompra } from '~/components/ModalConfirmarStatusCompra.vue'
+import ModalReceberCompra from '~/components/ModalReceberCompra.vue'
 import ModalVincularProdutoItem from '~/components/ModalVincularProdutoItem.vue'
 import TabelaCompras from '~/components/TabelaCompras.vue'
 import { useComprasAdmin } from '~/composables/useComprasAdmin'
@@ -172,7 +183,8 @@ const {
   alterarStatusCompra,
   vincularItemCompra,
   desvincularItemCompra,
-  criarProdutoRascunhoItemCompra
+  criarProdutoRascunhoItemCompra,
+  confirmarRecebimentoCompra
 } = useComprasAdmin()
 const { listarFornecedores } = useFornecedoresAdmin()
 
@@ -209,6 +221,10 @@ const vincularAberto = ref(false)
 const vinculando = ref(false)
 const cadastrarAberto = ref(false)
 const cadastrando = ref(false)
+
+const receberAberto = ref(false)
+const compraReceber = ref<CompraDetalhadaAdmin | null>(null)
+const confirmandoRecebimento = ref(false)
 
 const kpis = computed(() => {
   const valores = calcularKpis(compras.value)
@@ -359,7 +375,54 @@ async function recarregarDetalhe() {
     }
   }
 
+  if (compraReceber.value) {
+    try {
+      compraReceber.value = await obterCompra(compraReceber.value.id)
+    } catch {
+      // mantém o detalhe atual em caso de falha de recarga
+    }
+  }
+
   await carregarCompras()
+}
+
+async function abrirReceber(compra: CompraAdmin) {
+  if (carregandoDetalhe.value) {
+    return
+  }
+
+  carregandoDetalhe.value = true
+
+  try {
+    compraReceber.value = await obterCompra(compra.id)
+    receberAberto.value = true
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível carregar a compra.')
+  } finally {
+    carregandoDetalhe.value = false
+  }
+}
+
+async function confirmarRecebimento() {
+  const compra = compraReceber.value
+
+  if (!compra || confirmandoRecebimento.value) {
+    return
+  }
+
+  confirmandoRecebimento.value = true
+
+  try {
+    await confirmarRecebimentoCompra(compra.id)
+    toast.success('Compra recebida e estoque atualizado com sucesso.')
+    receberAberto.value = false
+    compraReceber.value = null
+    await carregarCompras()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível confirmar o recebimento.')
+  } finally {
+    confirmandoRecebimento.value = false
+  }
 }
 
 function abrirVincular(item: ItemCompraAdmin) {

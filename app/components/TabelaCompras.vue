@@ -66,7 +66,7 @@
               @click="emit('editar', compra)"
             />
             <BaseButton
-              v-if="compra.status === 'pendente'"
+              v-if="compra.status === 'pendente' && compra.tipo === 'mercadoria'"
               :id="`tabela-compras-card-${compra.id}-receber`"
               label="Receber"
               variant="primary"
@@ -136,7 +136,7 @@
                     @click="emit('editar', compra)"
                   />
                   <BaseButton
-                    v-if="compra.status === 'pendente'"
+                    v-if="compra.status === 'pendente' && compra.tipo === 'mercadoria'"
                     :id="`tabela-compras-${compra.id}-receber`"
                     label="Receber"
                     variant="primary"

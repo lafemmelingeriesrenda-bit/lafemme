@@ -10,13 +10,6 @@
       {{ mensagem }}
     </p>
 
-    <p
-      v-if="acao === 'receber'"
-      class="mt-3 rounded-luxe border border-amber-200 bg-amber-50 px-4 py-3 font-sans text-sm text-amber-800"
-    >
-      Marcar como recebida ainda NÃO altera o estoque nesta versão.
-    </p>
-
     <template #footer>
       <BaseButton
         id="modal-status-compra-cancelar"
